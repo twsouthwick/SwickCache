@@ -3,16 +3,16 @@ using System.IO;
 
 namespace Swick.Cache
 {
-    internal class CacheSerializer : ICacheSerializer
+    internal class NewtonsoftCacheSerializer : ICacheSerializer
     {
         private readonly JsonSerializer _serializer;
 
-        public CacheSerializer(JsonSerializer serializer)
+        public NewtonsoftCacheSerializer(JsonSerializer serializer)
         {
             _serializer = serializer;
         }
 
-        public byte[] GetBytes(object obj)
+        public byte[] GetBytes<T>(T obj)
         {
             using (var ms = new MemoryStream())
             {

@@ -19,7 +19,6 @@ namespace Swick.Cache
             services.TryAddSingleton<CacheExpirationProvider>();
             services.TryAddSingleton<CachingProxyGenerationHook>();
             services.TryAddSingleton<ICacheEntryInvalidator>(ctx => ctx.GetRequiredService<CachingInterceptor>());
-            services.TryAddSingleton<ICacheSerializer, CacheSerializer>();
             services.TryAddSingleton<CacheInvalidatorInterceptor>();
             services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
             services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
