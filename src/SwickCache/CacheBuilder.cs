@@ -1,6 +1,7 @@
 ﻿using Swick.Cache;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System;
 
 namespace Swick.Cache
 {
@@ -13,6 +14,16 @@ namespace Swick.Cache
 
         public IServiceCollection Services { get; }
 
-        public OptionsBuilder<CachingOptions> Configure() => Services.AddOptions<CachingOptions>();
+        public CacheBuilder Configure(Action<OptionsBuilder<CachingOptions>> action)
+        {
+            if (action is null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            action(Services.AddOptions<CachingOptions>());
+
+            return this;
+        }
     }
 }

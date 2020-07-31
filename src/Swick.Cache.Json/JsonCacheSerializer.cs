@@ -2,16 +2,12 @@
 
 namespace Swick.Cache
 {
-    internal class JsonCacheSerializer : ICacheSerializer
+    public class JsonCacheSerializer : ICacheSerializer
     {
         public byte[] GetBytes<T>(T obj)
-        {
-            return JsonSerializer.SerializeToUtf8Bytes<T>(obj);
-        }
+            => JsonSerializer.SerializeToUtf8Bytes<T>(obj);
 
         public TResult GetValue<TResult>(byte[] data)
-        {
-            return JsonSerializer.Deserialize<TResult>(data);
-        }
+            => JsonSerializer.Deserialize<TResult>(data);
     }
 }

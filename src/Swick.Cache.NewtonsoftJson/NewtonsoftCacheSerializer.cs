@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Swick.Cache
 {
-    internal class NewtonsoftCacheSerializer : ICacheSerializer
+    public class NewtonsoftCacheSerializer : ICacheSerializer
     {
         private readonly JsonSerializer _serializer;
 
