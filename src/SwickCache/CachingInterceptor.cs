@@ -11,6 +11,7 @@ namespace Swick.Cache
     {
         private readonly IDistributedCache _cache;
         private readonly IOptionsMonitor<CachingOptions> _options;
+        private readonly ICacheKeyProvider _keyProvider;
         private readonly ICacheSerializer _serializer;
         private readonly CacheExpirationProvider _expirationProvider;
         private readonly ILogger<CachingInterceptor> _logger;
@@ -19,12 +20,14 @@ namespace Swick.Cache
             IDistributedCache cache,
             ICacheSerializer serializer,
             IOptionsMonitor<CachingOptions> options,
+            ICacheKeyProvider keyProvider,
             CacheExpirationProvider expirationProvider,
             ILogger<CachingInterceptor> logger)
         {
             _cache = cache;
             _serializer = serializer;
             _options = options;
+            _keyProvider = keyProvider;
             _expirationProvider = expirationProvider;
             _logger = logger;
         }
@@ -79,6 +82,6 @@ namespace Swick.Cache
             return _cache.RemoveAsync(key);
         }
 
-        private string GetCacheKey(IInvocation invocation) => invocation.Method.GetKey(invocation.Arguments);
+        private string GetCacheKey(IInvocation invocation) => _keyProvider.GetKey(invocation.Method, invocation.Arguments);
     }
 }

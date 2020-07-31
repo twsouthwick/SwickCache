@@ -22,6 +22,7 @@ namespace Swick.Cache
             services.TryAddSingleton<CacheInvalidatorInterceptor>();
             services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
             services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
+            services.TryAddTransient<ICacheKeyProvider, CacheKeyProvider>();
 
             return new CacheBuilder(services);
         }
