@@ -13,7 +13,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swick.Cache.NewtonsoftJson"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{79CA894F-CFAD-4BCA-AA04-E88EDA7DD4BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swick.Cache.Tests", "tests\Swick.Cache.Tests\Swick.Cache.Tests.csproj", "{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swick.Cache.Tests", "tests\Swick.Cache.Tests\Swick.Cache.Tests.csproj", "{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{307FA71B-0576-4407-81A7-505934FE69A7}"
+	ProjectSection(SolutionItems) = preProject
+		nuget.config = nuget.config
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -68,6 +68,7 @@ namespace Swick.Cache
             else
             {
                 _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
+                await _cache.SetAsync(key, _serializer.GetBytes(result)).ConfigureAwait(false);
             }
 
             return result;

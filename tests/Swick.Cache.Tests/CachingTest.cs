@@ -1,21 +1,12 @@
 ﻿using AutofacContrib.NSubstitute;
-using Microsoft.Extensions;
-using Microsoft.Extensions.Caching;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
+using AutoFixture;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
-using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-
-using Assert = Swick.Cache.Tests.AssertExtensions;
-using Microsoft.Extensions.Caching.Distributed;
-using AutoFixture;
-using System.Reflection;
-using System.Linq;
-using System.Threading;
-using Microsoft.Extensions.Options;
 
 namespace Swick.Cache.Tests
 {
@@ -33,11 +24,6 @@ namespace Swick.Cache.Tests
         {
             // Arrange
             using var mock = AutoSubstitute.Configure()
-                .ConfigureOptions(options =>
-                {
-                    options.AutomaticallySkipMocksForProvidedValues = true;
-                    options.TypesToSkipForMocking.Add(typeof(IOptionsMonitor<CachingOptions>));
-                })
                 .AddCaching()
                 .Build();
 
@@ -57,30 +43,30 @@ namespace Swick.Cache.Tests
             var value = _fixture.CreateMany<byte>().ToArray();
             using var mock = AutoSubstitute.Configure()
                 .InjectProperties()
+                .AddCaching()
                 .MakeUnregisteredTypesPerLifetime()
-                .ConfigureService<ITest>(t => t.ReturnStringAsync().Returns(expected))
+                .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key).Returns((byte[])null))
+                .ConfigureService<ITest>(t => t.ReturnObjectAsync().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
                 .ConfigureService<ICacheSerializer>(t => t.GetBytes(expected).Returns(value))
-                .AddCaching()
                 .Build();
-            var cache = mock.Resolve<IDistributedCache>();
+
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
 
             // Act
-            var result = await cached.ReturnStringAsync();
+            var result = await cached.ReturnObjectAsync();
 
             // Assert
             Assert.Equal(expected, result);
 
-            await cache.Received(1).SetAsync(key, value, Arg.Any<DistributedCacheEntryOptions>(), Arg.Any<CancellationToken>());
+            await mock.Resolve<IDistributedCache>().Received(1).SetAsync(key, value, Arg.Any<DistributedCacheEntryOptions>(), Arg.Any<CancellationToken>());
         }
 
         public interface ITest
         {
-            Task<string> ReturnStringAsync();
-
-            Task<string> ReturnStringAsync1Arg();
+            [Cached]
+            Task<object> ReturnObjectAsync();
         }
     }
 }
