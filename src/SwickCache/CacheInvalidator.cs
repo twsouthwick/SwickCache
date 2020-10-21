@@ -3,7 +3,7 @@ namespace Swick.Cache
     internal class CacheInvalidator<T> : ICacheInvalidator<T>
         where T : class
     {
-        public CacheInvalidator(CachingManager manager)
+        public CacheInvalidator(ICachingManager manager)
         {
             Value = manager.CreateInvalidatorProxy<T>();
         }

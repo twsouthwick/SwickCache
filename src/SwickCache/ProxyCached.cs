@@ -1,15 +1,17 @@
-﻿using Swick.Cache;
+﻿using System;
 
 namespace Swick.Cache
 {
     internal class ProxyCached<T> : ICached<T>
         where T : class
     {
-        public ProxyCached(CachingManager manager, T instance)
+        private readonly Lazy<T> _factory;
+
+        public ProxyCached(ICachingManager manager, T instance)
         {
-            Value = manager.CreateCachedProxy<T>(instance);
+            _factory = new Lazy<T>(() => manager.CreateCachedProxy<T>(instance));
         }
 
-        public T Value { get; }
+        public T Value => _factory.Value;
     }
 }

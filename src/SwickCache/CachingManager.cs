@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Swick.Cache
 {
-    internal class CachingManager
+    internal class CachingManager : ICachingManager
     {
         private readonly IOptionsMonitor<CachingOptions> _cachingOptions;
         private readonly ILogger<CachingManager> _logger;

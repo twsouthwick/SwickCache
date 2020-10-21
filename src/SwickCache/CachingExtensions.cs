@@ -14,7 +14,7 @@ namespace Swick.Cache
                     options.UseProxies = true;
                 });
 
-            services.TryAddSingleton<CachingManager>();
+            services.TryAddSingleton<ICachingManager, CachingManager>();
             services.TryAddSingleton<CachingInterceptor>();
             services.TryAddSingleton<CacheExpirationProvider>();
             services.TryAddSingleton<CachingProxyGenerationHook>();
