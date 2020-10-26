@@ -29,7 +29,7 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-restore --verbosity normal
     - name: Upload NuGet
-      run: dotnet nuget push **/*/bin/Release/*.nupkg --source https://nuget.pkg.github.com/twsouthwick/index.json -k {{secrets.GITHUB_TOKEN}} 
+      run: dotnet nuget push --source https://nuget.pkg.github.com/twsouthwick/index.json -k {{secrets.GITHUB_TOKEN}} **/*.nupkg 
     - name: Upload artifact
       uses: actions/upload-artifact@v2.2.0
       with:
