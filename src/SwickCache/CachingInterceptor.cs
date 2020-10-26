@@ -37,9 +37,9 @@ namespace Swick.Cache
         private static readonly MethodInfo HandleSyncMethodInfo = typeof(CachingInterceptor)
             .GetMethod(nameof(HandleSynchronous), BindingFlags.Static | BindingFlags.NonPublic);
 
-        private delegate void SynchronousHandler(IInvocation invocation);
+        private delegate void SynchronousHandler(CachingInterceptor interceptor, IInvocation invocation);
 
-        private static ConcurrentDictionary<Type, SynchronousHandler> _handlers = new ConcurrentDictionary<Type, SynchronousHandler>();
+        private static readonly ConcurrentDictionary<Type, SynchronousHandler> _handlers = new ConcurrentDictionary<Type, SynchronousHandler>();
 
         public void InterceptSynchronous(IInvocation invocation)
         {
@@ -47,13 +47,13 @@ namespace Swick.Cache
             {
                 var handler = _handlers.GetOrAdd(invocation.Method.ReturnType, t => (SynchronousHandler)HandleSyncMethodInfo.MakeGenericMethod(t).CreateDelegate(typeof(SynchronousHandler)));
 
-                handler(invocation);
+                handler(this, invocation);
             }
         }
 
-        private void HandleSynchronous<TResult>(IInvocation invocation)
+        private static void HandleSynchronous<TResult>(CachingInterceptor interceptor, IInvocation invocation)
         {
-            var result = InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: false);
+            var result = interceptor.InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: false);
 
             if (!result.IsCompleted)
             {
