@@ -2,12 +2,13 @@ using Castle.DynamicProxy;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Swick.Cache.Interceptors;
 using System;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal class CachingInterceptor : AsyncInterceptorBase, ICacheEntryInvalidator
+    internal class CachingInterceptor : MyAsyncBase, ICacheEntryInvalidator
     {
         private readonly IDistributedCache _cache;
         private readonly IOptionsMonitor<CachingOptions> _options;
@@ -32,11 +33,11 @@ namespace Swick.Cache
             _logger = logger;
         }
 
-        protected override Task InterceptAsync(IInvocation invocation, Func<IInvocation, Task> proceed) => proceed(invocation);
+        protected override Task InterceptAsync(IInvocation invocation, IInvocationProceedInfo info, Func<IInvocation, IInvocationProceedInfo, Task> proceed) => proceed(invocation, info);
 
-        protected override async Task<TResult> InterceptAsync<TResult>(IInvocation invocation, Func<IInvocation, Task<TResult>> _)
+        protected override async Task<TResult> InterceptAsync<TResult>(IInvocation invocation, IInvocationProceedInfo info, Func<IInvocation, IInvocationProceedInfo, Task<TResult>> _)
         {
-            var proceed = new Proceed<TResult>(invocation);
+            var proceed = new Proceed<TResult>(invocation, info);
 
             if (!_options.CurrentValue.IsEnabled)
             {
