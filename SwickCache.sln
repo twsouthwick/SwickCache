@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swick.Cache.NewtonsoftJson"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{79CA894F-CFAD-4BCA-AA04-E88EDA7DD4BF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swick.Cache.Tests", "tests\Swick.Cache.Tests\Swick.Cache.Tests.csproj", "{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{307FA71B-0576-4407-81A7-505934FE69A7}"
 	ProjectSection(SolutionItems) = preProject
 		nuget.config = nuget.config
@@ -38,10 +36,6 @@ Global
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D327A068-9838-4B58-97CD-4FC9D5BDE2EF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,7 +44,6 @@ Global
 		{02A991A4-9808-4870-A37A-E3B12E5D3A8A} = {6237512A-1B5F-495E-BF69-C68DD555F412}
 		{49258AA0-B556-4D1F-87C9-D8CB54CF593F} = {6237512A-1B5F-495E-BF69-C68DD555F412}
 		{0BCEE145-11FA-4370-AA43-6C766F819122} = {6237512A-1B5F-495E-BF69-C68DD555F412}
-		{D327A068-9838-4B58-97CD-4FC9D5BDE2EF} = {79CA894F-CFAD-4BCA-AA04-E88EDA7DD4BF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3229F8CB-8686-455A-84E2-9498FCF6649B}
