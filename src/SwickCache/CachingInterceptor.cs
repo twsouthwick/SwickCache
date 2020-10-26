@@ -3,7 +3,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
-using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
@@ -46,7 +45,7 @@ namespace Swick.Cache
 
             var key = GetCacheKey(invocation);
 
-            var cached = await _cache.GetAsync(key).ConfigureAwait(false);
+            var cached = await GetAsync(key).ConfigureAwait(false);
 
             if (cached != null)
             {
@@ -110,5 +109,18 @@ namespace Swick.Cache
         }
 
         private string GetCacheKey(IInvocation invocation) => _keyProvider.GetKey(invocation.Method, invocation.Arguments);
+
+        private async Task<byte[]> GetAsync(string key)
+        {
+            try
+            {
+                return await _cache.GetAsync(key).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Unexpected error while accessing cached value.");
+                return null;
+            }
+        }
     }
 }
