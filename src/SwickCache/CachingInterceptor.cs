@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
@@ -50,7 +51,8 @@ namespace Swick.Cache
             if (cached != null)
             {
                 _logger.LogDebug("Using cached value for '{Key}'", key);
-                return _serializer.GetValue<TResult>(cached);
+
+                return GetValue(cached);
             }
 
             var result = await proceed(invocation).ConfigureAwait(false);
@@ -68,10 +70,34 @@ namespace Swick.Cache
             else
             {
                 _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
-                await _cache.SetAsync(key, _serializer.GetBytes(result)).ConfigureAwait(false);
+                await _cache.SetAsync(key, GetBytes(result)).ConfigureAwait(false);
             }
 
             return result;
+
+            byte[] GetBytes(TResult input)
+            {
+                if (input is byte[] b)
+                {
+                    return b;
+                }
+                else
+                {
+                    return _serializer.GetBytes<TResult>(input);
+                }
+            }
+
+            TResult GetValue(byte[] input)
+            {
+                if (input is TResult r)
+                {
+                    return r;
+                }
+                else
+                {
+                    return _serializer.GetValue<TResult>(input);
+                }
+            }
         }
 
         public Task InvalidateAsync(IInvocation invocation)
