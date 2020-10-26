@@ -93,7 +93,7 @@ namespace Swick.Cache
                 return _serializer.GetValue<TResult>(cached);
             }
 
-            _logger.LogDebug("Found cached value for '{Key}'", key);
+            _logger.LogDebug("Did not find cached value for '{Key}'", key);
 
             var result = await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
             var expiration = _expirationProvider.GetExpiration(invocation.Method, result);
