@@ -90,7 +90,7 @@ namespace Swick.Cache
             {
                 _logger.LogDebug("Using cached value for '{Key}'", key);
 
-                return GetValue(cached);
+                return _serializer.GetValue<TResult>(cached);
             }
 
             _logger.LogDebug("Found cached value for '{Key}'", key);
@@ -105,39 +105,15 @@ namespace Swick.Cache
                     AbsoluteExpiration = expiration.Value,
                 };
 
-                await SetAsync(key, GetBytes(result), options, isAsync).ConfigureAwait(false);
+                await SetAsync(key, _serializer.GetBytes(result), options, isAsync).ConfigureAwait(false);
             }
             else
             {
                 _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
-                await SetAsync(key, GetBytes(result), null, isAsync).ConfigureAwait(false);
+                await SetAsync(key, _serializer.GetBytes(result), null, isAsync).ConfigureAwait(false);
             }
 
             return result;
-
-            byte[] GetBytes(TResult input)
-            {
-                if (input is byte[] b)
-                {
-                    return b;
-                }
-                else
-                {
-                    return _serializer.GetBytes<TResult>(input);
-                }
-            }
-
-            TResult GetValue(byte[] input)
-            {
-                if (input is TResult r)
-                {
-                    return r;
-                }
-                else
-                {
-                    return _serializer.GetValue<TResult>(input);
-                }
-            }
         }
 
         public Task InvalidateAsync(IInvocation invocation)
