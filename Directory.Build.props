@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>false</DelaySign>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)signing.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
     <FileVersion>$(GitVersion_MajorMinorPatch)</FileVersion>
     <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
