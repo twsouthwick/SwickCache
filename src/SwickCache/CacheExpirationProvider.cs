@@ -15,6 +15,11 @@ namespace Swick.Cache
             {
                 var attribute = method.GetCustomAttribute<CachedAttribute>();
 
+                if (attribute is null)
+                {
+                    return null;
+                }
+
                 if (!attribute.Duration.HasValue)
                 {
                     return null;
