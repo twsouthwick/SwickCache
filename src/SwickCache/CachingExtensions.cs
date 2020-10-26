@@ -23,6 +23,7 @@ namespace Swick.Cache
             services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
             services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
             services.TryAddTransient<ICacheKeyProvider, CacheKeyProvider>();
+            services.TryAddSingleton<ICacheSerializer, DefaultSerializer>();
 
             return new CacheBuilder(services);
         }

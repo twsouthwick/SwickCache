@@ -4,6 +4,6 @@ namespace Swick.Cache
     {
         byte[] GetBytes<T>(T obj);
 
-        TResult GetValue<TResult>(byte[] data);
+        T GetValue<T>(byte[] data);
     }
 }
