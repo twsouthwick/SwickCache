@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System;
+using System.Reflection;
 
 namespace Swick.Cache
 {
@@ -12,6 +14,7 @@ namespace Swick.Cache
                 {
                     options.IsEnabled = true;
                     options.UseProxies = true;
+                    options.ShouldCache.Add(HasCachedAttribute);
                 });
 
             services.TryAddSingleton<ICachingManager, CachingManager>();
@@ -26,6 +29,11 @@ namespace Swick.Cache
             services.TryAddSingleton<ICacheSerializer, DefaultSerializer>();
 
             return new CacheBuilder(services);
+        }
+
+        private static bool HasCachedAttribute(Type _, MethodInfo methodInfo)
+        {
+            return methodInfo.GetCustomAttribute<CachedAttribute>() != null;
         }
     }
 }

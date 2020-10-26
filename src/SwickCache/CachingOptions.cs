@@ -19,14 +19,6 @@ namespace Swick.Cache
         /// <summary>
         /// Collection to identify what which methods should be cached.
         /// </summary>
-        public ICollection<Func<Type, MethodInfo, bool>> ShouldCache { get; } = new List<Func<Type, MethodInfo, bool>>()
-        {
-            HasCachedAttribute
-        };
-
-        private static bool HasCachedAttribute(Type _, MethodInfo methodInfo)
-        {
-            return methodInfo.GetCustomAttribute<CachedAttribute>() != null; 
-        }
+        public ICollection<Func<Type, MethodInfo, bool>> ShouldCache { get; } = new List<Func<Type, MethodInfo, bool>>();
     }
 }
