@@ -5,7 +5,7 @@ namespace Swick.Cache
 {
     public static class CachingExtensions
     {
-        public static CacheBuilder AddCaching(this IServiceCollection services)
+        public static CacheBuilder AddCachingManager(this IServiceCollection services)
         {
             services.AddOptions<CachingOptions>()
                 .Configure(options =>
