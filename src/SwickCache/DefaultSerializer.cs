@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Swick.Cache
 {
-    public abstract class DefaultSerializer : ICacheSerializer
+    public class DefaultSerializer : ICacheSerializer
     {
         public byte[] GetBytes<T>(T obj)
         {
