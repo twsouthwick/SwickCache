@@ -53,7 +53,7 @@ namespace Swick.Cache
 
         private static void HandleSynchronous<TResult>(CachingInterceptor interceptor, IInvocation invocation)
         {
-            var result = interceptor.InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: false);
+            var result = interceptor.InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: false);
 
             if (!result.IsCompleted)
             {
@@ -68,10 +68,10 @@ namespace Swick.Cache
 
         public void InterceptAsynchronous<TResult>(IInvocation invocation)
         {
-            invocation.ReturnValue = InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: true).AsTask();
+            invocation.ReturnValue = InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: true).AsTask();
         }
 
-        private async ValueTask<TResult> InterceptAsynchronous<TResult>(IInvocation invocation, Proceed<TResult> proceed, bool isAsync)
+        private async ValueTask<TResult> InterceptInternalAsync<TResult>(IInvocation invocation, Proceed<TResult> proceed, bool isAsync)
         {
             if (!_options.CurrentValue.IsEnabled)
             {
