@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
@@ -53,7 +55,7 @@ namespace Swick.Cache
 
         private static void HandleSynchronous<TResult>(CachingInterceptor interceptor, IInvocation invocation)
         {
-            var result = interceptor.InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: false);
+            var result = interceptor.InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: false, default);
 
             if (!result.IsCompleted)
             {
@@ -68,10 +70,12 @@ namespace Swick.Cache
 
         public void InterceptAsynchronous<TResult>(IInvocation invocation)
         {
-            invocation.ReturnValue = InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: true).AsTask();
+            var cancellationToken = invocation.Arguments.OfType<CancellationToken>().FirstOrDefault();
+
+            invocation.ReturnValue = InterceptInternalAsync(invocation, new Proceed<TResult>(invocation), isAsync: true, cancellationToken).AsTask();
         }
 
-        private async ValueTask<TResult> InterceptInternalAsync<TResult>(IInvocation invocation, Proceed<TResult> proceed, bool isAsync)
+        private async ValueTask<TResult> InterceptInternalAsync<TResult>(IInvocation invocation, Proceed<TResult> proceed, bool isAsync, CancellationToken token)
         {
             if (!_options.CurrentValue.IsEnabled)
             {
@@ -84,7 +88,7 @@ namespace Swick.Cache
 
             _logger.LogDebug("Checking for cached value for '{Key}'", key);
 
-            var cached = await GetAsync(key, isAsync).ConfigureAwait(false);
+            var cached = await GetAsync(key, isAsync, token).ConfigureAwait(false);
 
             if (cached != null)
             {
@@ -105,12 +109,12 @@ namespace Swick.Cache
                     AbsoluteExpiration = expiration.Value,
                 };
 
-                await SetAsync(key, _serializer.GetBytes(result), options, isAsync).ConfigureAwait(false);
+                await SetAsync(key, _serializer.GetBytes(result), options, isAsync, token).ConfigureAwait(false);
             }
             else
             {
                 _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
-                await SetAsync(key, _serializer.GetBytes(result), null, isAsync).ConfigureAwait(false);
+                await SetAsync(key, _serializer.GetBytes(result), null, isAsync, token).ConfigureAwait(false);
             }
 
             return result;
@@ -127,7 +131,7 @@ namespace Swick.Cache
 
         private string GetCacheKey(IInvocation invocation) => _keyProvider.GetKey(invocation.Method, invocation.Arguments);
 
-        private async ValueTask SetAsync(string key, byte[] result, DistributedCacheEntryOptions options, bool isAsync)
+        private async ValueTask SetAsync(string key, byte[] result, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
         {
             var bytes = _serializer.GetBytes(result);
 
@@ -135,7 +139,7 @@ namespace Swick.Cache
             {
                 if (isAsync)
                 {
-                    await _cache.SetAsync(key, bytes, options).ConfigureAwait(false);
+                    await _cache.SetAsync(key, bytes, options, token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -148,11 +152,11 @@ namespace Swick.Cache
             }
         }
 
-        private async ValueTask<byte[]> GetAsync(string key, bool isAsync)
+        private async ValueTask<byte[]> GetAsync(string key, bool isAsync, CancellationToken token)
         {
             try
             {
-                return isAsync ? await _cache.GetAsync(key).ConfigureAwait(false) : _cache.Get(key);
+                return isAsync ? await _cache.GetAsync(key, token).ConfigureAwait(false) : _cache.Get(key);
             }
             catch (Exception e)
             {
