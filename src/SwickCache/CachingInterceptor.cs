@@ -2,13 +2,14 @@ using Castle.DynamicProxy;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Swick.Cache.Interceptors;
 using System;
+using System.Collections.Concurrent;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal class CachingInterceptor : MyAsyncBase, ICacheEntryInvalidator
+    internal class CachingInterceptor : IAsyncInterceptor, ICacheEntryInvalidator
     {
         private readonly IDistributedCache _cache;
         private readonly IOptionsMonitor<CachingOptions> _options;
@@ -33,22 +34,57 @@ namespace Swick.Cache
             _logger = logger;
         }
 
-        protected override Task InterceptAsync(IInvocation invocation, IInvocationProceedInfo info, Func<IInvocation, IInvocationProceedInfo, Task> proceed) => proceed(invocation, info);
+        private static readonly MethodInfo HandleSyncMethodInfo = typeof(CachingInterceptor)
+            .GetMethod(nameof(HandleSynchronous), BindingFlags.Static | BindingFlags.NonPublic);
 
-        protected override async Task<TResult> InterceptAsync<TResult>(IInvocation invocation, IInvocationProceedInfo info, Func<IInvocation, IInvocationProceedInfo, Task<TResult>> _)
+        private delegate void SynchronousHandler(IInvocation invocation);
+
+        private static ConcurrentDictionary<Type, SynchronousHandler> _handlers = new ConcurrentDictionary<Type, SynchronousHandler>();
+
+        public void InterceptSynchronous(IInvocation invocation)
         {
-            var proceed = new Proceed<TResult>(invocation, info);
+            if (invocation.Method.ReturnType != null)
+            {
+                var handler = _handlers.GetOrAdd(invocation.Method.ReturnType, t => (SynchronousHandler)HandleSyncMethodInfo.MakeGenericMethod(t).CreateDelegate(typeof(SynchronousHandler)));
 
+                handler(invocation);
+            }
+        }
+
+        private void HandleSynchronous<TResult>(IInvocation invocation)
+        {
+            var result = InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: false);
+
+            if (!result.IsCompleted)
+            {
+                throw new InvalidOperationException("Synchronous operations must not result in asynchronous actions.");
+            }
+
+            invocation.ReturnValue = result.Result;
+        }
+
+        public void InterceptAsynchronous(IInvocation invocation)
+            => invocation.Proceed();
+
+        public void InterceptAsynchronous<TResult>(IInvocation invocation)
+        {
+            invocation.ReturnValue = InterceptAsynchronous(invocation, new Proceed<TResult>(invocation), isAsync: true).AsTask();
+        }
+
+        private async ValueTask<TResult> InterceptAsynchronous<TResult>(IInvocation invocation, Proceed<TResult> proceed, bool isAsync)
+        {
             if (!_options.CurrentValue.IsEnabled)
             {
                 _logger.LogWarning("Caching has been turned off");
 
-                return await proceed.InvokeAsync().ConfigureAwait(false);
+                return await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
             }
 
             var key = GetCacheKey(invocation);
 
-            var cached = await GetAsync(key).ConfigureAwait(false);
+            _logger.LogDebug("Checking for cached value for '{Key}'", key);
+
+            var cached = await GetAsync(key, isAsync).ConfigureAwait(false);
 
             if (cached != null)
             {
@@ -57,7 +93,9 @@ namespace Swick.Cache
                 return GetValue(cached);
             }
 
-            var result = await proceed.InvokeAsync().ConfigureAwait(false);
+            _logger.LogDebug("Found cached value for '{Key}'", key);
+
+            var result = await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
             var expiration = _expirationProvider.GetExpiration(invocation.Method, result);
 
             if (expiration.HasValue)
@@ -67,12 +105,12 @@ namespace Swick.Cache
                     AbsoluteExpiration = expiration.Value,
                 };
 
-                await _cache.SetAsync(key, _serializer.GetBytes(result), options).ConfigureAwait(false);
+                await SetAsync(key, GetBytes(result), options, isAsync).ConfigureAwait(false);
             }
             else
             {
                 _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
-                await _cache.SetAsync(key, GetBytes(result)).ConfigureAwait(false);
+                await SetAsync(key, GetBytes(result), null, isAsync).ConfigureAwait(false);
             }
 
             return result;
@@ -113,11 +151,22 @@ namespace Swick.Cache
 
         private string GetCacheKey(IInvocation invocation) => _keyProvider.GetKey(invocation.Method, invocation.Arguments);
 
-        private async Task<byte[]> GetAsync(string key)
+        private async ValueTask SetAsync(string key, byte[] result, DistributedCacheEntryOptions options, bool isAsync)
+        {
+            if (isAsync)
+            {
+                await _cache.SetAsync(key, _serializer.GetBytes(result), options).ConfigureAwait(false);
+            }
+            else
+            {
+                _cache.Set(key, _serializer.GetBytes(result), options);
+            }
+        }
+        private async ValueTask<byte[]> GetAsync(string key, bool isAsync)
         {
             try
             {
-                return await _cache.GetAsync(key).ConfigureAwait(false);
+                return isAsync ? await _cache.GetAsync(key).ConfigureAwait(false) : _cache.Get(key);
             }
             catch (Exception e)
             {

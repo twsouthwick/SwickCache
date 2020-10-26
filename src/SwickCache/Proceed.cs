@@ -8,16 +8,24 @@ namespace Swick.Cache
         private readonly IInvocation _invocation;
         private readonly IInvocationProceedInfo _proceed;
 
-        public Proceed(IInvocation invocation, IInvocationProceedInfo info)
+        public Proceed(IInvocation invocation)
         {
             _invocation = invocation;
-            _proceed = info;
+            _proceed = invocation.CaptureProceedInfo();
         }
 
-        public Task<TResult> InvokeAsync()
+        public async ValueTask<TResult> InvokeAsync(bool isAsync)
         {
             _proceed.Invoke();
-            return (Task<TResult>)_invocation.ReturnValue;
+
+            if (isAsync)
+            {
+                return await (Task<TResult>)_invocation.ReturnValue;
+            }
+            else
+            {
+                return (TResult)_invocation.ReturnValue;
+            }
         }
     }
 }
