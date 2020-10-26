@@ -1,18 +1,20 @@
 using Castle.DynamicProxy;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
     internal class CachingProxyGenerationHook : IProxyGenerationHook
     {
         private readonly ILogger<CachingProxyGenerationHook> _logger;
+        private readonly IOptions<CachingOptions> _options;
 
-        public CachingProxyGenerationHook(ILogger<CachingProxyGenerationHook> logger)
+        public CachingProxyGenerationHook(ILogger<CachingProxyGenerationHook> logger, IOptions<CachingOptions> options)
         {
             _logger = logger;
+            _options = options;
         }
 
         public void MethodsInspected()
@@ -25,26 +27,21 @@ namespace Swick.Cache
 
         public bool ShouldInterceptMethod(Type type, MethodInfo methodInfo)
         {
-            return methodInfo.GetCustomAttribute<CachedAttribute>() != null && IsTask(methodInfo);
-        }
-
-        private bool IsTask(MethodInfo methodInfo)
-        {
-            var returnType = methodInfo.ReturnType;
-
-            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+            foreach (var shouldCache in _options.Value.ShouldCache)
             {
-                return true;
+                if (shouldCache(type, methodInfo))
+                {
+                    return true;
+                }
             }
-
-            _logger.LogWarning("Invalid return type '{Type}' on '{MemberInfo}' for caching", returnType, methodInfo);
 
             return false;
         }
 
         public override int GetHashCode()
-            => typeof(CachingProxyGenerationHook).GetHashCode();
+            => _options.GetHashCode();
 
-        public override bool Equals(object obj) => obj is CachingProxyGenerationHook;
+        public override bool Equals(object obj)
+            => obj is CachingProxyGenerationHook other && other._options == _options;
     }
 }
