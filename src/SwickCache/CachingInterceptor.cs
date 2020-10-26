@@ -34,13 +34,15 @@ namespace Swick.Cache
 
         protected override Task InterceptAsync(IInvocation invocation, Func<IInvocation, Task> proceed) => proceed(invocation);
 
-        protected override async Task<TResult> InterceptAsync<TResult>(IInvocation invocation, Func<IInvocation, Task<TResult>> proceed)
+        protected override async Task<TResult> InterceptAsync<TResult>(IInvocation invocation, Func<IInvocation, Task<TResult>> _)
         {
+            var proceed = new Proceed<TResult>(invocation);
+
             if (!_options.CurrentValue.IsEnabled)
             {
                 _logger.LogWarning("Caching has been turned off");
 
-                return await proceed(invocation).ConfigureAwait(false);
+                return await proceed.InvokeAsync().ConfigureAwait(false);
             }
 
             var key = GetCacheKey(invocation);
@@ -54,7 +56,7 @@ namespace Swick.Cache
                 return GetValue(cached);
             }
 
-            var result = await proceed(invocation).ConfigureAwait(false);
+            var result = await proceed.InvokeAsync().ConfigureAwait(false);
             var expiration = _expirationProvider.GetExpiration(invocation.Method, result);
 
             if (expiration.HasValue)
