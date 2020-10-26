@@ -7,6 +7,13 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <InformationalVersion>$(GitVersion_InformationalVersion)</InformationalVersion>
+    <FileVersion>$(GitVersion_MajorMinorPatch)</FileVersion>
+    <AssemblyVersion>$(GitVersion_AssemblySemVer)</AssemblyVersion>
+    <Version>$(GitVersion_NuGetVersionV2)</Version>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(GitHub)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
