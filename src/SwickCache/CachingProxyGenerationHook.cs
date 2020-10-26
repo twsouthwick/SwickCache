@@ -41,5 +41,10 @@ namespace Swick.Cache
 
             return false;
         }
+
+        public override int GetHashCode()
+            => typeof(CachingProxyGenerationHook).GetHashCode();
+
+        public override bool Equals(object obj) => obj is CachingProxyGenerationHook;
     }
 }
