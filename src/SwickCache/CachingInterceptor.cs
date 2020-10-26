@@ -129,15 +129,25 @@ namespace Swick.Cache
 
         private async ValueTask SetAsync(string key, byte[] result, DistributedCacheEntryOptions options, bool isAsync)
         {
-            if (isAsync)
+            var bytes = _serializer.GetBytes(result);
+
+            try
             {
-                await _cache.SetAsync(key, _serializer.GetBytes(result), options).ConfigureAwait(false);
+                if (isAsync)
+                {
+                    await _cache.SetAsync(key, bytes, options).ConfigureAwait(false);
+                }
+                else
+                {
+                    _cache.Set(key, bytes, options);
+                }
             }
-            else
+            catch (Exception e)
             {
-                _cache.Set(key, _serializer.GetBytes(result), options);
+                _logger.LogError(e, "Unexpected error while writing to cache.");
             }
         }
+
         private async ValueTask<byte[]> GetAsync(string key, bool isAsync)
         {
             try
@@ -146,7 +156,7 @@ namespace Swick.Cache
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Unexpected error while accessing cached value.");
+                _logger.LogError(e, "Unexpected error while getting cached value.");
                 return null;
             }
         }
