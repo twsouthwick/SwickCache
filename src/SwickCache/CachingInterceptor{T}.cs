@@ -8,12 +8,14 @@ using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal interface ICachingInterceptor
+    internal interface ICachingInterceptorHandler
     {
         void Intercept(IInvocation invocation, bool isAsync, CancellationToken token);
+
+        void Invalidate(IInvocation invocation, bool isAsync);
     }
 
-    internal class CachingInterceptor<T> : ICachingInterceptor
+    internal class CachingInterceptorHandler<T> : ICachingInterceptorHandler
     {
         private readonly ICacheSerializer<T> _serializer;
         private readonly IDistributedCache _cache;
@@ -21,7 +23,7 @@ namespace Swick.Cache
         private readonly IOptionsSnapshot<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
-        public CachingInterceptor(
+        public CachingInterceptorHandler(
             ICacheSerializer<T> serializer,
             IDistributedCache cache,
             ICacheKeyProvider keyProvider,
@@ -33,6 +35,44 @@ namespace Swick.Cache
             _keyProvider = keyProvider;
             _options = options;
             _logger = logger;
+        }
+
+        public void Invalidate(IInvocation invocation, bool isAsync)
+        {
+            var result = InvalidateInternal(invocation, isAsync);
+
+            if (isAsync)
+            {
+                invocation.ReturnValue = result.AsTask();
+            }
+            else if (result.IsCompleted)
+            {
+                invocation.ReturnValue = result.Result;
+            }
+            else
+            {
+                throw new InvalidOperationException("Synchronous operations must not result in asynchronous actions.");
+            }
+        }
+
+        private async ValueTask<T> InvalidateInternal(IInvocation invocation, bool isAsync)
+        {
+            var key = _keyProvider.GetKey(invocation.Method, invocation.Arguments);
+
+            _logger.LogTrace("Removing cached value for {Key}", key);
+
+            if (isAsync)
+            {
+                await _cache.RemoveAsync(key);
+            }
+            else
+            {
+                _cache.Remove(key);
+            }
+
+            _logger.LogTrace("Removed cached value for {Key}", key);
+
+            return default;
         }
 
         public void Intercept(IInvocation invocation, bool isAsync, CancellationToken token)

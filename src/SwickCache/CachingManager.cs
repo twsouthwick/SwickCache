@@ -37,13 +37,13 @@ namespace Swick.Cache
                 return target;
             }
 
-            return _generator.CreateInterfaceProxyWithTargetInterface(target, _options, _cachingInterceptor.ToInterceptor());
+            return _generator.CreateInterfaceProxyWithTargetInterface(target, _options, _cachingInterceptor);
         }
 
         public T CreateInvalidatorProxy<T>()
             where T : class
         {
-            return _generator.CreateInterfaceProxyWithoutTarget<T>(_options, _invalidatorInterceptor.ToInterceptor());
+            return _generator.CreateInterfaceProxyWithoutTarget<T>(_options, _invalidatorInterceptor);
         }
     }
 }

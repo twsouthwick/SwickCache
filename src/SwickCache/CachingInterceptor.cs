@@ -1,5 +1,6 @@
 using Castle.DynamicProxy;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -7,63 +8,97 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal class CachingInterceptor : IAsyncInterceptor
+    internal class CachingInterceptor : IInterceptor
     {
-        private readonly IDistributedCache _cache;
-        private readonly IOptionsMonitor<CachingOptions> _options;
-        private readonly ICacheKeyProvider _keyProvider;
-        private readonly ILogger<CachingInterceptor> _logger;
-        private readonly IServiceProvider _services;
+        protected readonly IServiceProvider _services;
 
-        public CachingInterceptor(
-            IDistributedCache cache,
-            IOptionsMonitor<CachingOptions> options,
-            ICacheKeyProvider keyProvider,
-            ILogger<CachingInterceptor> logger,
-            IServiceProvider services)
+        private readonly ConcurrentDictionary<MethodInfo, Action<IInvocation>> _handlers = new ConcurrentDictionary<MethodInfo, Action<IInvocation>>();
+
+        public CachingInterceptor(IServiceProvider services)
         {
-            _cache = cache;
-            _options = options;
-            _keyProvider = keyProvider;
-            _logger = logger;
             _services = services;
         }
 
-        private static readonly MethodInfo HandleSyncMethodInfo = typeof(CachingInterceptor)
-            .GetMethod(nameof(HandleSynchronous), BindingFlags.Static | BindingFlags.NonPublic);
-
-        private delegate void SynchronousHandler(IServiceProvider interceptor, IInvocation invocation);
-
-        private static readonly ConcurrentDictionary<Type, SynchronousHandler> _handlers = new ConcurrentDictionary<Type, SynchronousHandler>();
-
-        public void InterceptSynchronous(IInvocation invocation)
+        protected enum MethodType
         {
-            if (invocation.Method.ReturnType != null)
-            {
-                var handler = _handlers.GetOrAdd(invocation.Method.ReturnType, t => (SynchronousHandler)HandleSyncMethodInfo.MakeGenericMethod(t).CreateDelegate(typeof(SynchronousHandler)));
+            SynchronousVoid,
+            Synchronous,
+            AsyncAction,
+            AsyncFunction,
+        }
 
-                handler(_services, invocation);
+        public void Intercept(IInvocation invocation)
+        {
+            var handler = _handlers.GetOrAdd(invocation.Method, CreateHandler);
+            handler(invocation);
+        }
+
+        protected virtual Action<IInvocation> CreateHandler(MethodInfo method)
+        {
+            var (methodType, returnType) = GetMethodType(method.ReturnType);
+
+            switch (methodType)
+            {
+                case MethodType.SynchronousVoid:
+                case MethodType.AsyncAction:
+                    return invocation => invocation.Proceed();
+                case MethodType.AsyncFunction:
+                    var handler = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
+
+                    if (TryGetCancellationIndex(out var index))
+                    {
+                        return invocation => handler.Intercept(invocation, true, (CancellationToken)invocation.Arguments[index]);
+                    }
+                    else
+                    {
+                        return invocation => handler.Intercept(invocation, true, default);
+                    }
+                default:
+                    var handler2 = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
+                    return invocation => handler2.Intercept(invocation, isAsync: false, default);
+            }
+
+            bool TryGetCancellationIndex(out int index)
+            {
+                index = 0;
+                foreach (var arg in method.GetParameters())
+                {
+                    if (arg.ParameterType == typeof(CancellationToken))
+                    {
+                        return true;
+                    }
+
+                    index++;
+                }
+                return false;
             }
         }
 
-        private static void HandleSynchronous<TResult>(IServiceProvider services, IInvocation invocation)
+        protected static (MethodType, Type) GetMethodType(Type returnType)
         {
-            var interceptor = (ICachingInterceptor)services.GetService(typeof(CachingInterceptor<TResult>));
-            interceptor.Intercept(invocation, isAsync: false, default);
-        }
+            if (returnType == typeof(void))
+            {
+                return (MethodType.SynchronousVoid, typeof(void));
+            }
 
-        public void InterceptAsynchronous(IInvocation invocation)
-            => invocation.Proceed();
+            if (!typeof(Task).IsAssignableFrom(returnType))
+            {
+                return (MethodType.Synchronous, returnType);
+            }
 
-        public void InterceptAsynchronous<TResult>(IInvocation invocation)
-        {
-            var cancellationToken = invocation.Arguments.OfType<CancellationToken>().FirstOrDefault();
+            // The return type is a task of some sort, so assume it's asynchronous
+            var isGeneric = returnType.GetTypeInfo().IsGenericType;
 
-            var interceptor = (ICachingInterceptor)_services.GetService(typeof(CachingInterceptor<TResult>));
-            interceptor.Intercept(invocation, isAsync: true, cancellationToken);
+            if (isGeneric)
+            {
+                return (MethodType.AsyncFunction, returnType.GetGenericArguments()[0]);
+            }
+
+            return (MethodType.AsyncAction, typeof(Task));
         }
     }
 }
