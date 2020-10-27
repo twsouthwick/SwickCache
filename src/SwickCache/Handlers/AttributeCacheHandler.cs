@@ -5,13 +5,13 @@ using System.Reflection;
 
 namespace Swick.Cache.Handlers
 {
-    internal class CachedAttributeHandler<TAttribute> : CacheHandler
+    public sealed class AttributeCacheHandler<TAttribute> : CacheHandler
         where TAttribute : Attribute
     {
         private readonly Action<TAttribute, DistributedCacheEntryOptions> _config;
         private readonly ConcurrentDictionary<MethodInfo, TAttribute> _attributes;
 
-        public CachedAttributeHandler(Action<TAttribute, DistributedCacheEntryOptions> config)
+        public AttributeCacheHandler(Action<TAttribute, DistributedCacheEntryOptions> config)
         {
             _config = config;
             _attributes = new ConcurrentDictionary<MethodInfo, TAttribute>();

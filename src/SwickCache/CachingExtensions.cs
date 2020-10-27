@@ -1,9 +1,6 @@
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Swick.Cache.Handlers;
 using Swick.Cache.Serialization;
-using System;
 using System.IO;
 
 namespace Swick.Cache
@@ -32,15 +29,5 @@ namespace Swick.Cache
 
             return new CacheBuilder(services);
         }
-
-        public static CacheBuilder CacheAttribute<TAttribute>(this CacheBuilder builder, Action<TAttribute, DistributedCacheEntryOptions> optionsConfig)
-            where TAttribute : Attribute
-            => builder.Configure(options =>
-            {
-                options.CacheHandlers.Add(new CachedAttributeHandler<TAttribute>(optionsConfig));
-            });
-
-        public static CacheBuilder SetDefaultExpiration(this CacheBuilder builder, Action<DistributedCacheEntryOptions> configure)
-            => builder.Configure(options => options.CacheHandlers.Add(new DefaultExpirationCacheHandler(configure)));
     }
 }

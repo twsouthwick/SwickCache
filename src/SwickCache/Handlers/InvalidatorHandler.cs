@@ -4,19 +4,20 @@ using System.Reflection;
 
 namespace Swick.Cache.Handlers
 {
-    internal class InvalidatorHandler : CacheHandler
+    public sealed class InvalidatorHandler<T> : CacheHandler
     {
-        public static CacheHandler Instance { get; } = new InvalidatorHandler();
+        private readonly Action<T, DistributedCacheEntryOptions> _config;
 
-        private InvalidatorHandler()
+        public InvalidatorHandler(Action<T, DistributedCacheEntryOptions> config)
         {
+            _config = config;
         }
 
         protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
         {
-            if (obj is ICacheInvalidator invalidator)
+            if (obj is T t)
             {
-                options.AbsoluteExpiration = invalidator.Expiration;
+                _config(t, options);
             }
         }
     }

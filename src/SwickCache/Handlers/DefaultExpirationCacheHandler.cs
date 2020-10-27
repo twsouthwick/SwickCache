@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Swick.Cache.Handlers
 {
-    internal class DefaultExpirationCacheHandler : CacheHandler
+    public sealed class DefaultExpirationCacheHandler : CacheHandler
     {
         private readonly Action<DistributedCacheEntryOptions> _configure;
 
