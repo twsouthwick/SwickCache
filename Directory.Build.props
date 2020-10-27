@@ -20,7 +20,7 @@
     <Version>$(GitVersion_NuGetVersionV2)</Version>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(GitHub)' == 'true'">
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
