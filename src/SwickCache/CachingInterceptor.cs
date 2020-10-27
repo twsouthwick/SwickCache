@@ -17,7 +17,6 @@ namespace Swick.Cache
         private readonly IOptionsMonitor<CachingOptions> _options;
         private readonly ICacheKeyProvider _keyProvider;
         private readonly ICacheSerializer _serializer;
-        private readonly CacheExpirationProvider _expirationProvider;
         private readonly ILogger<CachingInterceptor> _logger;
 
         public CachingInterceptor(
@@ -25,14 +24,12 @@ namespace Swick.Cache
             ICacheSerializer serializer,
             IOptionsMonitor<CachingOptions> options,
             ICacheKeyProvider keyProvider,
-            CacheExpirationProvider expirationProvider,
             ILogger<CachingInterceptor> logger)
         {
             _cache = cache;
             _serializer = serializer;
             _options = options;
             _keyProvider = keyProvider;
-            _expirationProvider = expirationProvider;
             _logger = logger;
         }
 
@@ -100,22 +97,16 @@ namespace Swick.Cache
             _logger.LogDebug("Did not find cached value for '{Key}'", key);
 
             var result = await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
-            var expiration = _expirationProvider.GetExpiration(invocation.Method, result);
+            var options = new DistributedCacheEntryOptions();
 
-            if (expiration.HasValue)
+            foreach (var handler in _options.CurrentValue.CacheHandlers)
             {
-                var options = new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpiration = expiration.Value,
-                };
+                handler.ConfigureEntryOptions(typeof(TResult), invocation.Method, result, options);
+            }
 
-                await SetAsync(key, _serializer.GetBytes(result), options, isAsync, token).ConfigureAwait(false);
-            }
-            else
-            {
-                _logger.LogWarning("No expiration is defined for {Invocation}", invocation);
-                await SetAsync(key, _serializer.GetBytes(result), null, isAsync, token).ConfigureAwait(false);
-            }
+            await SetAsync(key, _serializer.GetBytes(result), options, isAsync, token).ConfigureAwait(false);
+
+            _logger.LogDebug("Cached result for '{Key}'", key);
 
             return result;
         }
