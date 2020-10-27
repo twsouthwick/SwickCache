@@ -31,16 +31,14 @@ namespace Swick.Cache
 
         public CacheBuilder CacheType<T>(Action<CacheTypeBuilder<T>> builder, Action<DistributedCacheEntryOptions> configureEntry = null)
         {
-            Configure(options =>
+            var types = new CacheTypeBuilder<T>(Services, configureEntry);
+
+            builder(types);
+
+            return Configure(options =>
             {
-                var types = new CacheTypeBuilder<T>(configureEntry);
-
-                builder(types);
-
-                options.CacheHandlers.Add(types);
+                options.CacheHandlers.Add(types.ToCacheHandler());
             });
-
-            return this;
         }
     }
 }

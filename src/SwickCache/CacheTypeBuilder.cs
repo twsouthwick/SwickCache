@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Swick.Cache.Handlers;
 using System;
 using System.Collections.Generic;
@@ -8,14 +9,34 @@ using System.Reflection;
 
 namespace Swick.Cache
 {
-    public class CacheTypeBuilder<T> : CacheHandler
+    public class CacheTypeBuilder<T>
     {
         private readonly HashSet<MethodInfo> _methods = new HashSet<MethodInfo>();
+        private readonly IServiceCollection _services;
         private readonly Action<DistributedCacheEntryOptions> _entryConfigure;
 
-        public CacheTypeBuilder(Action<DistributedCacheEntryOptions> entryConfigure)
+        private Action<MethodInfo> _customCache;
+
+        internal CacheTypeBuilder(
+            IServiceCollection services,
+            Action<DistributedCacheEntryOptions> entryConfigure)
         {
+            _services = services;
             _entryConfigure = entryConfigure;
+        }
+
+        public CacheTypeBuilder<T> WithCache<TCache>()
+            where TCache : class, IDistributedCache
+        {
+            void AddCacheType(MethodInfo method) => _services.AddOptions<CachingInterceptorHandlerOptions>()
+                .Configure<TCache>((options, cache) =>
+                {
+                    options.AddCache(typeof(T), method, cache);
+                });
+
+            _customCache = AddCacheType;
+
+            return this;
         }
 
         public CacheTypeBuilder<T> Add(string name)
@@ -26,6 +47,7 @@ namespace Swick.Cache
             foreach (var method in methods)
             {
                 _methods.Add(method);
+                _customCache?.Invoke(method);
             }
 
             return this;
@@ -36,6 +58,7 @@ namespace Swick.Cache
             if (expression.Body is MethodCallExpression m)
             {
                 _methods.Add(m.Method);
+                _customCache?.Invoke(m.Method);
             }
             else
             {
@@ -45,26 +68,40 @@ namespace Swick.Cache
             return this;
         }
 
-        protected internal override bool ShouldCache(Type type, MethodInfo methodInfo)
+        internal CacheHandler ToCacheHandler() => new CacheTypeBuilderHandler(_methods, _entryConfigure);
+
+        private class CacheTypeBuilderHandler : CacheHandler
         {
-            if (type == typeof(T))
+            private readonly HashSet<MethodInfo> _methods;
+            private readonly Action<DistributedCacheEntryOptions> _entryConfigure;
+
+            public CacheTypeBuilderHandler(HashSet<MethodInfo> methods, Action<DistributedCacheEntryOptions> entryConfigure)
             {
-                return _methods.Contains(methodInfo);
+                _methods = methods;
+                _entryConfigure = entryConfigure;
             }
 
-            return false;
-        }
-
-        protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
-        {
-            if (_entryConfigure is null)
+            protected internal override bool ShouldCache(Type type, MethodInfo methodInfo)
             {
-                return;
+                if (type == typeof(T))
+                {
+                    return _methods.Contains(methodInfo);
+                }
+
+                return false;
             }
 
-            if (type == typeof(T) && _methods.Contains(method))
+            protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
             {
-                _entryConfigure(options);
+                if (_entryConfigure is null)
+                {
+                    return;
+                }
+
+                if (type == typeof(T) && _methods.Contains(method))
+                {
+                    _entryConfigure(options);
+                }
             }
         }
     }

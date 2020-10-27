@@ -8,30 +8,23 @@ using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal interface ICachingInterceptorHandler
-    {
-        void Intercept(IInvocation invocation, bool isAsync, CancellationToken token);
-
-        void Invalidate(IInvocation invocation, bool isAsync);
-    }
-
     internal class CachingInterceptorHandler<T> : ICachingInterceptorHandler
     {
+        private readonly CachingInterceptorHandlerOptions _cacheAccessor;
         private readonly ICacheSerializer<T> _serializer;
-        private readonly IDistributedCache _cache;
         private readonly ICacheKeyProvider _keyProvider;
         private readonly IOptionsSnapshot<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
         public CachingInterceptorHandler(
+            IOptions<CachingInterceptorHandlerOptions> cacheAccessor,
             ICacheSerializer<T> serializer,
-            IDistributedCache cache,
             ICacheKeyProvider keyProvider,
             IOptionsSnapshot<CachingOptions> options,
             ILogger<CachingInterceptor> logger)
         {
+            _cacheAccessor = cacheAccessor.Value;
             _serializer = serializer;
-            _cache = cache;
             _keyProvider = keyProvider;
             _options = options;
             _logger = logger;
@@ -57,17 +50,18 @@ namespace Swick.Cache
 
         private async ValueTask<T> InvalidateInternal(IInvocation invocation, bool isAsync)
         {
+            var cache = _cacheAccessor.GetCache(invocation.TargetType, invocation.Method);
             var key = _keyProvider.GetKey(invocation.Method, invocation.Arguments);
 
             _logger.LogTrace("Removing cached value for {Key}", key);
 
             if (isAsync)
             {
-                await _cache.RemoveAsync(key);
+                await cache.RemoveAsync(key);
             }
             else
             {
-                _cache.Remove(key);
+                cache.Remove(key);
             }
 
             _logger.LogTrace("Removed cached value for {Key}", key);
@@ -105,10 +99,11 @@ namespace Swick.Cache
             }
 
             var key = _keyProvider.GetKey(invocation.Method, invocation.Arguments);
+            var cache = _cacheAccessor.GetCache(invocation.Method.DeclaringType, invocation.Method);
 
             _logger.LogDebug("Checking for cached value for '{Key}'", key);
 
-            var cached = await GetAsync(key, isAsync, token).ConfigureAwait(false);
+            var cached = await GetAsync(cache, key, isAsync, token).ConfigureAwait(false);
 
             if (cached != null)
             {
@@ -128,24 +123,24 @@ namespace Swick.Cache
             }
 
             var (bytes, finalResult) = _serializer.GetBytes(result);
-            await SetAsync(key, bytes, options, isAsync, token).ConfigureAwait(false);
+            await SetAsync(cache, key, bytes, options, isAsync, token).ConfigureAwait(false);
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
             return finalResult;
         }
 
-        private async ValueTask SetAsync(string key, byte[] bytes, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
+        private async ValueTask SetAsync(IDistributedCache cache, string key, byte[] bytes, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
         {
             try
             {
                 if (isAsync)
                 {
-                    await _cache.SetAsync(key, bytes, options, token).ConfigureAwait(false);
+                    await cache.SetAsync(key, bytes, options, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    _cache.Set(key, bytes, options);
+                    cache.Set(key, bytes, options);
                 }
             }
             catch (Exception e)
@@ -154,11 +149,11 @@ namespace Swick.Cache
             }
         }
 
-        private async ValueTask<byte[]> GetAsync(string key, bool isAsync, CancellationToken token)
+        private async ValueTask<byte[]> GetAsync(IDistributedCache cache, string key, bool isAsync, CancellationToken token)
         {
             try
             {
-                return isAsync ? await _cache.GetAsync(key, token).ConfigureAwait(false) : _cache.Get(key);
+                return isAsync ? await cache.GetAsync(key, token).ConfigureAwait(false) : cache.Get(key);
             }
             catch (Exception e)
             {

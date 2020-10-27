@@ -145,6 +145,43 @@ namespace Swick.Cache.Tests
             mock.Resolve<IDistributedCache>().Received(1).Set(key, value, Arg.Any<DistributedCacheEntryOptions>());
         }
 
+        [Fact]
+        public void CustomCache()
+        {
+            // Arrange
+            var expected = _fixture.Create<string>();
+            var key = _fixture.Create<string>();
+            var value = _fixture.CreateMany<byte>().ToArray();
+            using var mock = AutoSubstitute.Configure()
+                .InjectProperties()
+                .AddCaching(c =>
+                {
+                    c.CacheType<ITest>(test => test
+                        .WithCache<ICustomCache>()
+                        .Add(t => t.ReturnObject()));
+                })
+                .MakeUnregisteredTypesPerLifetime()
+                .ConfigureService<ICustomCache>(cache => cache.Get(key).Returns((byte[])null))
+                .ConfigureService<ITest>(t => t.ReturnObject().Returns(expected))
+                .SubstituteFor<ICacheKeyProvider>()
+                    .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .Build();
+
+            var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
+
+            // Act
+            var result = cached.ReturnObject();
+
+            // Assert
+            Assert.Equal(expected, result);
+
+            mock.Resolve<ICustomCache>().Received(1).Set(key, value, Arg.Any<DistributedCacheEntryOptions>());
+        }
+
+        public interface ICustomCache : IDistributedCache
+        {
+        }
 
         public interface ITest
         {

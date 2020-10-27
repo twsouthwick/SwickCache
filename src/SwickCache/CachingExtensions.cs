@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swick.Cache.Serialization;
@@ -15,6 +16,9 @@ namespace Swick.Cache
                     options.IsEnabled = true;
                     options.UseProxies = true;
                 });
+
+            services.AddOptions<CachingInterceptorHandlerOptions>()
+                .Configure<IDistributedCache>((options, cache) => options.DefaultCache = cache);
 
             services.TryAddSingleton<ICachingManager, CachingManager>();
             services.TryAddSingleton(typeof(CachingInterceptorHandler<>));
