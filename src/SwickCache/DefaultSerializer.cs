@@ -11,7 +11,7 @@ namespace Swick.Cache
         {
             if (TryGetBytes(obj, out var result, out var updated))
             {
-                return (result, obj);
+                return (result, updated);
             }
 
             throw new NotSupportedException();
