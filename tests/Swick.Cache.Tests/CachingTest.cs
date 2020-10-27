@@ -45,7 +45,10 @@ namespace Swick.Cache.Tests
                 .InjectProperties()
                 .AddCaching(c =>
                 {
-                    c.CacheAttribute();
+                    c.CacheType<ITest>(test =>
+                    {
+                        test.Add(t => t.ReturnObjectAsync());
+                    });
                 })
                 .MakeUnregisteredTypesPerLifetime()
                 .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key).Returns((byte[])null))
@@ -68,7 +71,6 @@ namespace Swick.Cache.Tests
 
         public interface ITest
         {
-            [Cached]
             Task<object> ReturnObjectAsync();
         }
     }

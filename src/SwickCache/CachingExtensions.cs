@@ -33,10 +33,11 @@ namespace Swick.Cache
             return new CacheBuilder(services);
         }
 
-        public static CacheBuilder CacheAttribute(this CacheBuilder builder)
+        public static CacheBuilder CacheAttribute<TAttribute>(this CacheBuilder builder, Action<TAttribute, DistributedCacheEntryOptions> optionsConfig)
+            where TAttribute : Attribute
             => builder.Configure(options =>
             {
-                options.CacheHandlers.Add(new CachedAttributeHandler());
+                options.CacheHandlers.Add(new CachedAttributeHandler<TAttribute>(optionsConfig));
             });
 
         public static CacheBuilder SetDefaultExpiration(this CacheBuilder builder, Action<DistributedCacheEntryOptions> configure)

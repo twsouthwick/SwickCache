@@ -5,38 +5,34 @@ using System.Reflection;
 
 namespace Swick.Cache.Handlers
 {
-    internal class CachedAttributeHandler : CacheHandler
+    internal class CachedAttributeHandler<TAttribute> : CacheHandler
+        where TAttribute : Attribute
     {
-        private readonly ConcurrentDictionary<MethodInfo, DateTimeOffset?> _expirations = new ConcurrentDictionary<MethodInfo, DateTimeOffset?>();
+        private readonly Action<TAttribute, DistributedCacheEntryOptions> _config;
+        private readonly ConcurrentDictionary<MethodInfo, TAttribute> _attributes;
+
+        public CachedAttributeHandler(Action<TAttribute, DistributedCacheEntryOptions> config)
+        {
+            _config = config;
+            _attributes = new ConcurrentDictionary<MethodInfo, TAttribute>();
+        }
 
         protected internal override bool ShouldCache(Type type, MethodInfo methodInfo)
-        {
-            return methodInfo.GetCustomAttribute<CachedAttribute>() != null;
-        }
+             => GetAttribute(methodInfo) != null;
 
         protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
         {
-            var expiration = _expirations.GetOrAdd(method, m =>
+            var attribute = GetAttribute(method);
+
+            if (attribute is null)
             {
-                var attribute = m.GetCustomAttribute<CachedAttribute>();
-
-                if (attribute is null)
-                {
-                    return null;
-                }
-
-                if (!attribute.Duration.HasValue)
-                {
-                    return null;
-                }
-
-                return DateTimeOffset.Now.Add(attribute.Duration.Value);
-            });
-
-            if (expiration.HasValue)
-            {
-                options.AbsoluteExpiration = expiration.Value;
+                return;
             }
+
+            _config(attribute, options);
         }
+
+        private TAttribute GetAttribute(MethodInfo method)
+            => _attributes.GetOrAdd(method, m => m.GetCustomAttribute<TAttribute>());
     }
 }
