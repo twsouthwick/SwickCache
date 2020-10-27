@@ -104,7 +104,7 @@ namespace Swick.Cache
                 handler.ConfigureEntryOptions(typeof(TResult), invocation.Method, result, options);
             }
 
-            await SetAsync(key, _serializer.GetBytes(result), options, isAsync, token).ConfigureAwait(false);
+            await SetAsync(key, result, options, isAsync, token).ConfigureAwait(false);
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
@@ -122,7 +122,7 @@ namespace Swick.Cache
 
         private string GetCacheKey(IInvocation invocation) => _keyProvider.GetKey(invocation.Method, invocation.Arguments);
 
-        private async ValueTask SetAsync(string key, byte[] result, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
+        private async ValueTask SetAsync<TResult>(string key, TResult result, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
         {
             var bytes = _serializer.GetBytes(result);
 
