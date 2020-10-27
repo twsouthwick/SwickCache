@@ -1,3 +1,4 @@
+using Swick.Cache.Handlers;
 using System.Collections.Generic;
 
 namespace Swick.Cache

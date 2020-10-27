@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace Swick.Cache
+namespace Swick.Cache.Handlers
 {
     public abstract class CacheHandler
     {
