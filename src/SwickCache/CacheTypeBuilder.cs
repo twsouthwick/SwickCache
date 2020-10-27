@@ -2,6 +2,7 @@
 using Swick.Cache.Handlers;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -16,6 +17,19 @@ namespace Swick.Cache
         public CacheTypeBuilder(Action<DistributedCacheEntryOptions> entryConfigure)
         {
             _entryConfigure = entryConfigure;
+        }
+
+        public CacheTypeBuilder<T> Add(string name)
+        {
+            var methods = typeof(T).GetMethods()
+                .Where(m => string.Equals(name, m.Name, StringComparison.Ordinal));
+
+            foreach (var method in methods)
+            {
+                _methods.Add(method);
+            }
+
+            return this;
         }
 
         public CacheTypeBuilder<T> Add<TMethod>(Expression<Func<T, TMethod>> expression)
