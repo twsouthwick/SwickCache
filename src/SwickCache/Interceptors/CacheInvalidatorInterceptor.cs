@@ -1,12 +1,10 @@
 ﻿using Castle.DynamicProxy;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Reflection;
 
 namespace Swick.Cache
 {
-    internal class CacheInvalidatorInterceptor : CachingInterceptor
+    internal class CacheInvalidatorInterceptor : AsyncBaseInterceptor
     {
         public CacheInvalidatorInterceptor(IServiceProvider services)
             : base(services)
