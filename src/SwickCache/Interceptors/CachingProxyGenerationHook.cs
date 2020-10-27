@@ -10,9 +10,9 @@ namespace Swick.Cache
     {
         private readonly CachingOptions _options;
 
-        public CachingProxyGenerationHook(IOptions<CachingOptions> options)
+        public CachingProxyGenerationHook(CachingOptions options)
         {
-            _options = options.Value;
+            _options = options;
         }
 
         public void MethodsInspected()

@@ -1,6 +1,7 @@
 using Castle.DynamicProxy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
 
 namespace Swick.Cache
 {
@@ -16,16 +17,14 @@ namespace Swick.Cache
         public CachingManager(
             IOptionsMonitor<CachingOptions> options,
             ILogger<CachingManager> logger,
-            CachingInterceptor interceptor,
-            CacheInvalidatorInterceptor invalidatorInterceptor,
-            CachingProxyGenerationHook hook)
+            IServiceProvider services)
         {
             _cachingOptions = options;
             _logger = logger;
-            _cachingInterceptor = interceptor;
-            _invalidatorInterceptor = invalidatorInterceptor;
+            _cachingInterceptor = new CachingInterceptor(services);
+            _invalidatorInterceptor = new CacheInvalidatorInterceptor(services);
             _generator = new ProxyGenerator();
-            _options = new ProxyGenerationOptions(hook);
+            _options = new ProxyGenerationOptions(new CachingProxyGenerationHook(options.CurrentValue));
         }
 
         public T CreateCachedProxy<T>(T target)

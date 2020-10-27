@@ -17,17 +17,20 @@ namespace Swick.Cache
                 });
 
             services.TryAddSingleton<ICachingManager, CachingManager>();
-            services.TryAddSingleton<CachingInterceptor>();
             services.TryAddSingleton(typeof(CachingInterceptorHandler<>));
-            services.TryAddSingleton<CachingProxyGenerationHook>();
-            services.TryAddSingleton<CacheInvalidatorInterceptor>();
-            services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
-            services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
             services.TryAddTransient<ICacheKeyProvider, CacheKeyProvider>();
             services.TryAddSingleton<ICacheSerializer<byte[]>, ByteArraySerializer>();
             services.TryAddSingleton<ICacheSerializer<Stream>, StreamSerialzier>();
 
             return new CacheBuilder(services);
+        }
+
+        public static CacheBuilder AddAccessors(this CacheBuilder builder)
+        {
+            builder.Services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
+            builder.Services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
+
+            return builder;
         }
     }
 }
