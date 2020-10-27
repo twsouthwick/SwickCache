@@ -32,7 +32,7 @@ namespace Swick.Cache
         {
             private readonly StringBuilder _builder;
 
-            public KeyBuilder(StringBuilder builder)
+            internal KeyBuilder(StringBuilder builder)
             {
                 _builder = builder;
             }
