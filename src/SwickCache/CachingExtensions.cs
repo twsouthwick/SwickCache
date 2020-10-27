@@ -33,12 +33,9 @@ namespace Swick.Cache
         }
 
         public static CacheBuilder CacheAttribute(this CacheBuilder builder)
-            => builder.Configure(b =>
+            => builder.Configure(options =>
             {
-                b.Configure(options =>
-                {
-                    options.CacheHandlers.Add(new CachedAttributeHandler());
-                });
+                options.CacheHandlers.Add(new CachedAttributeHandler());
             });
 
         private class CachedAttributeHandler : CacheHandler

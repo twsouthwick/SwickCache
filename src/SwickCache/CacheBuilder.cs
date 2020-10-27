@@ -20,7 +20,7 @@ namespace Swick.Cache
 
         public IServiceCollection Services { get; }
 
-        public CacheBuilder Configure(Action<OptionsBuilder<CachingOptions>> action)
+        public CacheBuilder ConfigureOptions(Action<OptionsBuilder<CachingOptions>> action)
         {
             if (action is null)
             {
@@ -32,18 +32,18 @@ namespace Swick.Cache
             return this;
         }
 
+        public CacheBuilder Configure(Action<CachingOptions> action)
+            => ConfigureOptions(b => b.Configure(action));
+
         public CacheBuilder CacheType<T>(Action<CacheTypeBuilder<T>> builder, Action<DistributedCacheEntryOptions> configureEntry = null)
         {
-            Configure(b =>
+            Configure(options =>
             {
                 var types = new CacheTypeBuilder<T>(configureEntry);
 
                 builder(types);
 
-                b.Configure(options =>
-                {
-                    options.CacheHandlers.Add(types);
-                });
+                options.CacheHandlers.Add(types);
             });
 
             return this;
