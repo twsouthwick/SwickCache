@@ -12,7 +12,7 @@ namespace Swick.Cache
             _serializer = serializer;
         }
 
-        public byte[] GetBytes<T>(T obj)
+        public (byte[] bytes, T result) GetBytes<T>(T obj)
         {
             using (var ms = new MemoryStream())
             {
@@ -22,7 +22,7 @@ namespace Swick.Cache
                     _serializer.Serialize(jsonTextWriter, obj);
                 }
 
-                return ms.ToArray();
+                return (ms.ToArray(), obj);
             }
         }
 

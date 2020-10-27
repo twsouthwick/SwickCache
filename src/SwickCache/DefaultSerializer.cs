@@ -7,11 +7,11 @@ namespace Swick.Cache
 {
     public class DefaultSerializer : ICacheSerializer
     {
-        public byte[] GetBytes<T>(T obj)
+        public (byte[], T) GetBytes<T>(T obj)
         {
-            if (TryGetBytes(obj, out var result))
+            if (TryGetBytes(obj, out var result, out var updated))
             {
-                return result;
+                return (result, obj);
             }
 
             throw new NotSupportedException();
@@ -41,8 +41,10 @@ namespace Swick.Cache
             }
         }
 
-        protected virtual bool TryGetBytes<T>(T obj, out byte[] bytes)
+        protected virtual bool TryGetBytes<T>(T obj, out byte[] bytes, out T updated)
         {
+            updated = obj;
+
             if (typeof(T) == typeof(byte[]))
             {
                 bytes = (byte[])(object)obj;
