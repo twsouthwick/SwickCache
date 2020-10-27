@@ -8,13 +8,11 @@ namespace Swick.Cache
 {
     internal class CachingProxyGenerationHook : IProxyGenerationHook
     {
-        private readonly ILogger<CachingProxyGenerationHook> _logger;
-        private readonly IOptions<CachingOptions> _options;
+        private readonly CachingOptions _options;
 
-        public CachingProxyGenerationHook(ILogger<CachingProxyGenerationHook> logger, IOptions<CachingOptions> options)
+        public CachingProxyGenerationHook(IOptions<CachingOptions> options)
         {
-            _logger = logger;
-            _options = options;
+            _options = options.Value;
         }
 
         public void MethodsInspected()
@@ -27,7 +25,7 @@ namespace Swick.Cache
 
         public bool ShouldInterceptMethod(Type type, MethodInfo methodInfo)
         {
-            foreach (var handler in _options.Value.CacheHandlers)
+            foreach (var handler in _options.CacheHandlers)
             {
                 if (handler.ShouldCache(type, methodInfo))
                 {
