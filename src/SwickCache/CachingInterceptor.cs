@@ -52,7 +52,7 @@ namespace Swick.Cache
         private static void HandleSynchronous<TResult>(IServiceProvider services, IInvocation invocation)
         {
             var interceptor = (ICachingInterceptor)services.GetService(typeof(CachingInterceptor<TResult>));
-            interceptor.Intercept(invocation, isAsync: true, default);
+            interceptor.Intercept(invocation, isAsync: false, default);
         }
 
         public void InterceptAsynchronous(IInvocation invocation)
@@ -63,7 +63,7 @@ namespace Swick.Cache
             var cancellationToken = invocation.Arguments.OfType<CancellationToken>().FirstOrDefault();
 
             var interceptor = (ICachingInterceptor)_services.GetService(typeof(CachingInterceptor<TResult>));
-            interceptor.Intercept(invocation, isAsync: true, default);
+            interceptor.Intercept(invocation, isAsync: true, cancellationToken);
         }
     }
 }
