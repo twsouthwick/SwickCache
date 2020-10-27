@@ -2,10 +2,11 @@ using Castle.DynamicProxy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Reflection;
 
 namespace Swick.Cache
 {
-    internal class CachingManager : ICachingManager
+    internal class CachingManager : ICachingManager, IProxyGenerationHook
     {
         private readonly IOptionsMonitor<CachingOptions> _cachingOptions;
         private readonly ILogger<CachingManager> _logger;
@@ -24,7 +25,7 @@ namespace Swick.Cache
             _cachingInterceptor = new CachingInterceptor(services);
             _invalidatorInterceptor = new CacheInvalidatorInterceptor(services);
             _generator = new ProxyGenerator();
-            _options = new ProxyGenerationOptions(new CachingProxyGenerationHook(options.CurrentValue));
+            _options = new ProxyGenerationOptions(this);
         }
 
         public T CreateCachedProxy<T>(T target)
@@ -44,5 +45,33 @@ namespace Swick.Cache
         {
             return _generator.CreateInterfaceProxyWithoutTarget<T>(_options, _invalidatorInterceptor);
         }
+
+        void IProxyGenerationHook.MethodsInspected()
+        {
+        }
+
+        void IProxyGenerationHook.NonProxyableMemberNotification(Type type, MemberInfo memberInfo)
+        {
+        }
+
+        bool IProxyGenerationHook.ShouldInterceptMethod(Type type, MethodInfo methodInfo)
+        {
+            foreach (var handler in _cachingOptions.CurrentValue.CacheHandlers)
+            {
+                if (handler.ShouldCache(type, methodInfo))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+         => _cachingOptions.GetHashCode();
+
+        public override bool Equals(object obj)
+            => obj is CachingManager other && other._cachingOptions == _cachingOptions;
+
     }
 }
