@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swick.Cache.Handlers;
+using System;
 
 namespace Swick.Cache
 {
@@ -33,5 +35,8 @@ namespace Swick.Cache
             {
                 options.CacheHandlers.Add(new CachedAttributeHandler());
             });
+
+        public static CacheBuilder SetDefaultExpiration(this CacheBuilder builder, Action<DistributedCacheEntryOptions> configure)
+            => builder.Configure(options => options.CacheHandlers.Add(new DefaultExpirationCacheHandler(configure)));
     }
 }
