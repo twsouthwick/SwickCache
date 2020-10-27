@@ -43,13 +43,16 @@ namespace Swick.Cache.Tests
             var value = _fixture.CreateMany<byte>().ToArray();
             using var mock = AutoSubstitute.Configure()
                 .InjectProperties()
-                .AddCaching()
+                .AddCaching(c =>
+                {
+                    c.CacheAttribute();
+                })
                 .MakeUnregisteredTypesPerLifetime()
                 .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key).Returns((byte[])null))
                 .ConfigureService<ITest>(t => t.ReturnObjectAsync().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());

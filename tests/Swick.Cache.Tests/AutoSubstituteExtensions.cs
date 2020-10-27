@@ -32,7 +32,7 @@ namespace Swick.Cache.Tests
 
             return builder.AddServices(b =>
             {
-                cacheBuilder(b.AddCaching());
+                cacheBuilder(b.AddCachingManager());
             });
         }
 

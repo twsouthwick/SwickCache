@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		nuget.config = nuget.config
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swick.Cache.Tests", "tests\Swick.Cache.Tests\Swick.Cache.Tests.csproj", "{673E04FA-730E-4F09-B066-25821D6702C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,10 @@ Global
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BCEE145-11FA-4370-AA43-6C766F819122}.Release|Any CPU.Build.0 = Release|Any CPU
+		{673E04FA-730E-4F09-B066-25821D6702C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{673E04FA-730E-4F09-B066-25821D6702C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{673E04FA-730E-4F09-B066-25821D6702C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{673E04FA-730E-4F09-B066-25821D6702C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,6 +55,7 @@ Global
 		{02A991A4-9808-4870-A37A-E3B12E5D3A8A} = {6237512A-1B5F-495E-BF69-C68DD555F412}
 		{49258AA0-B556-4D1F-87C9-D8CB54CF593F} = {6237512A-1B5F-495E-BF69-C68DD555F412}
 		{0BCEE145-11FA-4370-AA43-6C766F819122} = {6237512A-1B5F-495E-BF69-C68DD555F412}
+		{673E04FA-730E-4F09-B066-25821D6702C2} = {79CA894F-CFAD-4BCA-AA04-E88EDA7DD4BF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3229F8CB-8686-455A-84E2-9498FCF6649B}
