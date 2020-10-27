@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Swick.Cache
 {
-    public class NewtonsoftCacheSerializer : ICacheSerializer
+    public class NewtonsoftCacheSerializer<T> : ICacheSerializer<T>
     {
         private readonly JsonSerializer _serializer;
 
@@ -12,7 +12,7 @@ namespace Swick.Cache
             _serializer = serializer;
         }
 
-        public (byte[] bytes, T result) GetBytes<T>(T obj)
+        public (byte[] bytes, T result) GetBytes(T obj)
         {
             using (var ms = new MemoryStream())
             {
@@ -26,13 +26,13 @@ namespace Swick.Cache
             }
         }
 
-        public TResult GetValue<TResult>(byte[] data)
+        public T GetValue(byte[] data)
         {
             using (var ms = new MemoryStream(data))
             using (var reader = new StreamReader(ms))
             using (var jsonReader = new JsonTextReader(reader))
             {
-                return _serializer.Deserialize<TResult>(jsonReader);
+                return _serializer.Deserialize<T>(jsonReader);
             }
         }
     }

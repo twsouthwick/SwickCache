@@ -6,7 +6,7 @@ namespace Swick.Cache
     {
         public static CacheBuilder AddNewtonsoftSerializer(this CacheBuilder builder)
         {
-            builder.Services.TryAddSingleton<ICacheSerializer, NewtonsoftCacheSerializer>();
+            builder.Services.TryAddSingleton(typeof(ICacheSerializer<>), typeof(NewtonsoftCacheSerializer<>));
 
             return builder;
         }

@@ -2,7 +2,9 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swick.Cache.Handlers;
+using Swick.Cache.Serialization;
 using System;
+using System.IO;
 
 namespace Swick.Cache
 {
@@ -19,13 +21,14 @@ namespace Swick.Cache
 
             services.TryAddSingleton<ICachingManager, CachingManager>();
             services.TryAddSingleton<CachingInterceptor>();
+            services.TryAddSingleton(typeof(CachingInterceptor<>));
             services.TryAddSingleton<CachingProxyGenerationHook>();
-            services.TryAddSingleton<ICacheEntryInvalidator>(ctx => ctx.GetRequiredService<CachingInterceptor>());
             services.TryAddSingleton<CacheInvalidatorInterceptor>();
             services.TryAddTransient(typeof(ICacheInvalidator<>), typeof(CacheInvalidator<>));
             services.TryAddTransient(typeof(ICached<>), typeof(ProxyCached<>));
             services.TryAddTransient<ICacheKeyProvider, CacheKeyProvider>();
-            services.TryAddSingleton<ICacheSerializer, DefaultSerializer>();
+            services.TryAddSingleton<ICacheSerializer<byte[]>, ByteArraySerializer>();
+            services.TryAddSingleton<ICacheSerializer<Stream>, StreamSerialzier>();
 
             return new CacheBuilder(services);
         }

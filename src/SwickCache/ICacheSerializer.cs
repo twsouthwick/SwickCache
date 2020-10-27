@@ -1,9 +1,9 @@
 namespace Swick.Cache
 {
-    public interface ICacheSerializer
+    public interface ICacheSerializer<T>
     {
-        (byte[] bytes, T result) GetBytes<T>(T obj);
+        (byte[] bytes, T result) GetBytes(T obj);
 
-        T GetValue<T>(byte[] data);
+        T GetValue(byte[] data);
     }
 }

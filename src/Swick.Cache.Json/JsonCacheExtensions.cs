@@ -6,7 +6,7 @@ namespace Swick.Cache
     {
         public static CacheBuilder AddJsonSerializer(this CacheBuilder builder)
         {
-            builder.Services.TryAddSingleton<ICacheSerializer, JsonCacheSerializer>();
+            builder.Services.TryAddSingleton(typeof(ICacheSerializer<>), typeof(JsonCacheSerializer<>));
 
             return builder;
         }
