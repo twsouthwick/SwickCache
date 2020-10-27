@@ -27,9 +27,9 @@ namespace Swick.Cache
 
         public bool ShouldInterceptMethod(Type type, MethodInfo methodInfo)
         {
-            foreach (var shouldCache in _options.Value.ShouldCache)
+            foreach (var handler in _options.Value.CacheHandlers)
             {
-                if (shouldCache(type, methodInfo))
+                if (handler.ShouldCache(type, methodInfo))
                 {
                     return true;
                 }

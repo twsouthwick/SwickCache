@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Swick.Cache
@@ -14,7 +16,6 @@ namespace Swick.Cache
                 {
                     options.IsEnabled = true;
                     options.UseProxies = true;
-                    options.ShouldCache.Add(HasCachedAttribute);
                 });
 
             services.TryAddSingleton<ICachingManager, CachingManager>();
@@ -31,9 +32,48 @@ namespace Swick.Cache
             return new CacheBuilder(services);
         }
 
-        private static bool HasCachedAttribute(Type _, MethodInfo methodInfo)
+        public static CacheBuilder CacheAttribute(this CacheBuilder builder)
+            => builder.Configure(b =>
+            {
+                b.Configure(options =>
+                {
+                    options.CacheHandlers.Add(new CachedAttributeHandler());
+                });
+            });
+
+        private class CachedAttributeHandler : CacheHandler
         {
-            return methodInfo.GetCustomAttribute<CachedAttribute>() != null;
+            private readonly ConcurrentDictionary<MethodInfo, DateTimeOffset?> _expirations = new ConcurrentDictionary<MethodInfo, DateTimeOffset?>();
+
+            protected internal override bool ShouldCache(Type type, MethodInfo methodInfo)
+            {
+                return methodInfo.GetCustomAttribute<CachedAttribute>() != null;
+            }
+
+            protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
+            {
+                var expiration = _expirations.GetOrAdd(method, m =>
+                {
+                    var attribute = m.GetCustomAttribute<CachedAttribute>();
+
+                    if (attribute is null)
+                    {
+                        return null;
+                    }
+
+                    if (!attribute.Duration.HasValue)
+                    {
+                        return null;
+                    }
+
+                    return DateTimeOffset.Now.Add(attribute.Duration.Value);
+                });
+
+                if (expiration.HasValue)
+                {
+                    options.AbsoluteExpiration = expiration.Value;
+                }
+            }
         }
     }
 }

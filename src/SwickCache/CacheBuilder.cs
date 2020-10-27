@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -31,26 +32,32 @@ namespace Swick.Cache
             return this;
         }
 
-        public CacheBuilder CacheType<T>(Action<CacheTypeBuilder<T>> builder)
+        public CacheBuilder CacheType<T>(Action<CacheTypeBuilder<T>> builder, Action<DistributedCacheEntryOptions> configureEntry = null)
         {
             Configure(b =>
             {
-                var types = new CacheTypeBuilder<T>();
+                var types = new CacheTypeBuilder<T>(configureEntry);
 
                 builder(types);
 
                 b.Configure(options =>
                 {
-                    options.ShouldCache.Add(types.ShouldAdd);
+                    options.CacheHandlers.Add(types);
                 });
             });
 
             return this;
         }
 
-        public class CacheTypeBuilder<T>
+        public class CacheTypeBuilder<T> : CacheHandler
         {
             private readonly HashSet<MethodInfo> _methods = new HashSet<MethodInfo>();
+            private readonly Action<DistributedCacheEntryOptions> _entryConfigure;
+
+            public CacheTypeBuilder(Action<DistributedCacheEntryOptions> entryConfigure)
+            {
+                _entryConfigure = entryConfigure;
+            }
 
             public CacheTypeBuilder<T> Add<TMethod>(Expression<Func<T, TMethod>> expression)
             {
@@ -66,14 +73,27 @@ namespace Swick.Cache
                 return this;
             }
 
-            internal bool ShouldAdd(Type type, MethodInfo method)
+            protected internal override bool ShouldCache(Type type, MethodInfo methodInfo)
             {
                 if (type == typeof(T))
                 {
-                    return _methods.Contains(method);
+                    return _methods.Contains(methodInfo);
                 }
 
                 return false;
+            }
+
+            protected internal override void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
+            {
+                if (_entryConfigure is null)
+                {
+                    return;
+                }
+
+                if (type == typeof(T) && _methods.Contains(method))
+                {
+                    _entryConfigure(options);
+                }
             }
         }
     }

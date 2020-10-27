@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace Swick.Cache
 {
@@ -19,6 +17,6 @@ namespace Swick.Cache
         /// <summary>
         /// Collection to identify what which methods should be cached.
         /// </summary>
-        public IList<Func<Type, MethodInfo, bool>> ShouldCache { get; } = new List<Func<Type, MethodInfo, bool>>();
+        public IList<CacheHandler> CacheHandlers { get; } = new List<CacheHandler>();
     }
 }
