@@ -19,64 +19,47 @@ namespace Swick.Cache
             _services = services;
         }
 
-        private enum MethodType
-        {
-            SynchronousVoid,
-            Synchronous,
-            AsyncAction,
-            AsyncFunction,
-        }
-
         public void Intercept(IInvocation invocation)
         {
             var handler = _handlers.GetOrAdd(invocation.Method, CreateHandler);
             handler(invocation);
         }
 
-        protected abstract Action<IInvocation> CreateAsyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type);
-
-        protected abstract Action<IInvocation> CreateSyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type);
+        protected abstract Action<IInvocation> CreateAction(MethodType methodType, ICachingInterceptorHandler handler, MethodInfo method, Type type);
 
         private Action<IInvocation> CreateHandler(MethodInfo method)
-        {
-            var (methodType, returnType) = GetMethodType(method.ReturnType);
-
-            if (methodType == MethodType.SynchronousVoid || methodType == MethodType.AsyncAction)
+            => GetMethodType(method.ReturnType) switch
             {
-                return _proceed;
-            }
+                (MethodType.Void, _) => _proceed,
+                (var methodType, var returnType) => CreateAction(methodType, CreateHandler(returnType), method, returnType),
+            };
 
-            var handler = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
-
-            if (methodType == MethodType.AsyncFunction)
-            {
-                return CreateAsyncHandler(handler, method, returnType);
-            }
-
-            return CreateSyncHandler(handler, method, returnType);
-        }
+        private ICachingInterceptorHandler CreateHandler(Type returnType)
+            => (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
 
         private static (MethodType, Type) GetMethodType(Type returnType)
         {
             if (returnType == typeof(void))
             {
-                return (MethodType.SynchronousVoid, typeof(void));
+                return (MethodType.Void, typeof(void));
             }
 
-            if (!typeof(Task).IsAssignableFrom(returnType))
+            if (returnType.IsGenericType)
             {
-                return (MethodType.Synchronous, returnType);
+                var genericType = returnType.GetGenericTypeDefinition();
+                var arg = returnType.GetGenericArguments()[0];
+
+                if (genericType == typeof(Task<>))
+                {
+                    return (MethodType.Task, arg);
+                }
+                else if (genericType == typeof(ValueTask<>))
+                {
+                    return (MethodType.ValueTask, arg);
+                }
             }
 
-            // The return type is a task of some sort, so assume it's asynchronous
-            var isGeneric = returnType.GetTypeInfo().IsGenericType;
-
-            if (isGeneric)
-            {
-                return (MethodType.AsyncFunction, returnType.GetGenericArguments()[0]);
-            }
-
-            return (MethodType.AsyncAction, typeof(Task));
+            return (MethodType.Synchronous, returnType);
         }
     }
 }

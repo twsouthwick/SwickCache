@@ -35,7 +35,6 @@ namespace Swick.Cache.Tests
             Assert.IsNotNSubstituteMock(manager);
         }
 
-
         [Fact]
         public async Task SimpleAsyncMethodIsCached()
         {
@@ -103,6 +102,80 @@ namespace Swick.Cache.Tests
 
             // Act
             var result = await cached.ReturnObjectAsyncWithCancellation(token);
+
+            // Assert
+            Assert.Equal(expected, result);
+
+            await mock.Resolve<IDistributedCache>().Received(1).SetAsync(key, value, Arg.Any<DistributedCacheEntryOptions>(), token);
+        }
+
+        [Fact]
+        public async Task ValueTaskMethodIsCached()
+        {
+            // Arrange
+            var expected = _fixture.Create<string>();
+            var key = _fixture.Create<string>();
+            var value = _fixture.CreateMany<byte>().ToArray();
+
+            using var mock = AutoSubstitute.Configure()
+                .InjectProperties()
+                .AddCaching(c =>
+                {
+                    c.CacheType<ITest>(test =>
+                    {
+                        test.Add(t => t.ValueTaskObjectAsync());
+                    });
+                })
+                .MakeUnregisteredTypesPerLifetime()
+                .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key).Returns((byte[])null))
+                .ConfigureService<ITest>(t => t.ValueTaskObjectAsync().Returns(expected))
+                .SubstituteFor<ICacheKeyProvider>()
+                    .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .Build();
+
+            var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
+
+            // Act
+            var result = await cached.ValueTaskObjectAsync();
+
+            // Assert
+            Assert.Equal(expected, result);
+
+            await mock.Resolve<IDistributedCache>().Received(1).SetAsync(key, value, Arg.Any<DistributedCacheEntryOptions>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task ValueTaskCancellationIsCached()
+        {
+            // Arrange
+            var expected = _fixture.Create<string>();
+            var key = _fixture.Create<string>();
+            var value = _fixture.CreateMany<byte>().ToArray();
+            var cts = new CancellationTokenSource();
+            var token = cts.Token;
+
+            using var mock = AutoSubstitute.Configure()
+                .InjectProperties()
+                .AddCaching(c =>
+                {
+                    c.CacheType<ITest>(test =>
+                    {
+                        test.Add(t => t.ValueTaskObjectWithCancellationAsync(default));
+                    });
+                })
+                .MakeUnregisteredTypesPerLifetime()
+                .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key, token).Returns((byte[])null))
+                .ConfigureService<ITest>(t => t.ValueTaskObjectWithCancellationAsync(token).Returns(expected))
+                .SubstituteFor<ICacheKeyProvider>()
+                    .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .Build();
+
+            var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
+
+            // Act
+            var result = await cached.ValueTaskObjectWithCancellationAsync(token);
 
             // Assert
             Assert.Equal(expected, result);
@@ -188,6 +261,10 @@ namespace Swick.Cache.Tests
             Task<object> ReturnObjectAsync();
 
             Task<object> ReturnObjectAsyncWithCancellation(CancellationToken token);
+
+            ValueTask<object> ValueTaskObjectWithCancellationAsync(CancellationToken token);
+
+            ValueTask<object> ValueTaskObjectAsync();
 
             object ReturnObject();
         }

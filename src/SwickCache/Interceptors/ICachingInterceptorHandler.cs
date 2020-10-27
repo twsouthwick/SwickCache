@@ -5,8 +5,8 @@ namespace Swick.Cache
 {
     internal interface ICachingInterceptorHandler
     {
-        void Intercept(IInvocation invocation, bool isAsync, CancellationToken token);
+        void Intercept(IInvocation invocation, MethodType methodType, CancellationToken token);
 
-        void Invalidate(IInvocation invocation, bool isAsync);
+        void Invalidate(IInvocation invocation, MethodType methodType);
     }
 }

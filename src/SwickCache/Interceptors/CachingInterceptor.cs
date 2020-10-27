@@ -12,20 +12,17 @@ namespace Swick.Cache
         {
         }
 
-        protected override Action<IInvocation> CreateAsyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
+        protected override Action<IInvocation> CreateAction(MethodType methodType, ICachingInterceptorHandler handler, MethodInfo method, Type type)
         {
-            if (TryGetCancellationIndex(method, out var index))
+            if (methodType != MethodType.Synchronous && TryGetCancellationIndex(method, out var index))
             {
-                return invocation => handler.Intercept(invocation, true, (CancellationToken)invocation.Arguments[index]);
+                return invocation => handler.Intercept(invocation, methodType, (CancellationToken)invocation.Arguments[index]);
             }
             else
             {
-                return invocation => handler.Intercept(invocation, true, default);
+                return invocation => handler.Intercept(invocation, methodType, default);
             }
         }
-
-        protected override Action<IInvocation> CreateSyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
-            => invocation => handler.Intercept(invocation, isAsync: false, default);
 
         private static bool TryGetCancellationIndex(MethodInfo method, out int index)
         {

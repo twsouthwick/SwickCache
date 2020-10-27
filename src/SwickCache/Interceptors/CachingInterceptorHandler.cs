@@ -30,23 +30,35 @@ namespace Swick.Cache
             _logger = logger;
         }
 
-        public void Invalidate(IInvocation invocation, bool isAsync)
+        public void Invalidate(IInvocation invocation, MethodType methodType)
         {
-            var result = InvalidateInternal(invocation, isAsync);
+            var result = InvalidateInternal(invocation, isAsync: methodType != MethodType.Synchronous);
 
-            if (isAsync)
-            {
-                invocation.ReturnValue = result.AsTask();
-            }
-            else if (result.IsCompleted)
-            {
-                invocation.ReturnValue = result.Result;
-            }
-            else
-            {
-                throw new InvalidOperationException("Synchronous operations must not result in asynchronous actions.");
-            }
+            invocation.ReturnValue = GetResult(methodType, result);
+
         }
+
+        public void Intercept(IInvocation invocation, MethodType methodType, CancellationToken token)
+        {
+            var result = InterceptInternalAsync(invocation, methodType, token);
+
+            invocation.ReturnValue = GetResult(methodType, result);
+        }
+
+        private object GetResult(MethodType methodType, ValueTask<T> result)
+            => methodType switch
+            {
+                MethodType.Task => result.AsTask(),
+                MethodType.ValueTask => result,
+                MethodType.Synchronous => UnwrapValueTask(result),
+                _ => throw new NotSupportedException($"Unexpected MethodType '{methodType}'"),
+            };
+
+        private static T UnwrapValueTask(ValueTask<T> result)
+            => result.IsCompleted
+                ? result.Result
+                : throw new InvalidOperationException("Synchronous operations must not result in asynchronous actions.");
+
 
         private async ValueTask<T> InvalidateInternal(IInvocation invocation, bool isAsync)
         {
@@ -69,33 +81,16 @@ namespace Swick.Cache
             return default;
         }
 
-        public void Intercept(IInvocation invocation, bool isAsync, CancellationToken token)
+        public async ValueTask<T> InterceptInternalAsync(IInvocation invocation, MethodType methodType, CancellationToken token)
         {
-            var result = InterceptInternalAsync(invocation, isAsync, token);
-
-            if (isAsync)
-            {
-                invocation.ReturnValue = result.AsTask();
-            }
-            else if (result.IsCompleted)
-            {
-                invocation.ReturnValue = result.Result;
-            }
-            else
-            {
-                throw new InvalidOperationException("Synchronous operations must not result in asynchronous actions.");
-            }
-        }
-
-        public async ValueTask<T> InterceptInternalAsync(IInvocation invocation, bool isAsync, CancellationToken token)
-        {
-            var proceed = new Proceed<T>(invocation);
+            var proceed = new Proceed<T>(invocation, methodType);
+            var isAsync = methodType != MethodType.Synchronous;
 
             if (!_options.Value.IsEnabled)
             {
                 _logger.LogWarning("Caching has been turned off");
 
-                return await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
+                return await proceed.InvokeAsync().ConfigureAwait(false);
             }
 
             var key = _keyProvider.GetKey(invocation.Method, invocation.Arguments);
@@ -114,7 +109,7 @@ namespace Swick.Cache
 
             _logger.LogDebug("Did not find cached value for '{Key}'", key);
 
-            var result = await proceed.InvokeAsync(isAsync).ConfigureAwait(false);
+            var result = await proceed.InvokeAsync().ConfigureAwait(false);
             var options = new DistributedCacheEntryOptions();
 
             foreach (var handler in _options.Value.CacheHandlers)

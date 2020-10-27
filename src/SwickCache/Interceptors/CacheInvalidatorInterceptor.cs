@@ -11,10 +11,7 @@ namespace Swick.Cache
         {
         }
 
-        protected override Action<IInvocation> CreateSyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
-            => invocation => handler.Invalidate(invocation, isAsync: false);
-
-        protected override Action<IInvocation> CreateAsyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
-            => invocation => handler.Invalidate(invocation, isAsync: true);
+        protected override Action<IInvocation> CreateAction(MethodType methodType, ICachingInterceptorHandler handler, MethodInfo method, Type type)
+            => invocation => handler.Invalidate(invocation, methodType);
     }
 }
