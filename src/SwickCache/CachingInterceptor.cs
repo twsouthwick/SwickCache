@@ -1,11 +1,7 @@
 using Castle.DynamicProxy;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +19,7 @@ namespace Swick.Cache
             _services = services;
         }
 
-        protected enum MethodType
+        private enum MethodType
         {
             SynchronousVoid,
             Synchronous,
@@ -37,48 +33,56 @@ namespace Swick.Cache
             handler(invocation);
         }
 
-        protected virtual Action<IInvocation> CreateHandler(MethodInfo method)
+        protected virtual Action<IInvocation> CreateAsyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
         {
-            var (methodType, returnType) = GetMethodType(method.ReturnType);
-
-            switch (methodType)
+            if (TryGetCancellationIndex(method, out var index))
             {
-                case MethodType.SynchronousVoid:
-                case MethodType.AsyncAction:
-                    return invocation => invocation.Proceed();
-                case MethodType.AsyncFunction:
-                    var handler = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
-
-                    if (TryGetCancellationIndex(out var index))
-                    {
-                        return invocation => handler.Intercept(invocation, true, (CancellationToken)invocation.Arguments[index]);
-                    }
-                    else
-                    {
-                        return invocation => handler.Intercept(invocation, true, default);
-                    }
-                default:
-                    var handler2 = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
-                    return invocation => handler2.Intercept(invocation, isAsync: false, default);
+                return invocation => handler.Intercept(invocation, true, (CancellationToken)invocation.Arguments[index]);
             }
-
-            bool TryGetCancellationIndex(out int index)
+            else
             {
-                index = 0;
-                foreach (var arg in method.GetParameters())
-                {
-                    if (arg.ParameterType == typeof(CancellationToken))
-                    {
-                        return true;
-                    }
-
-                    index++;
-                }
-                return false;
+                return invocation => handler.Intercept(invocation, true, default);
             }
         }
 
-        protected static (MethodType, Type) GetMethodType(Type returnType)
+        protected virtual Action<IInvocation> CreateSyncHandler(ICachingInterceptorHandler handler, MethodInfo method, Type type)
+            => invocation => handler.Intercept(invocation, isAsync: false, default);
+
+        private Action<IInvocation> CreateHandler(MethodInfo method)
+        {
+            var (methodType, returnType) = GetMethodType(method.ReturnType);
+
+            if (methodType == MethodType.SynchronousVoid || methodType == MethodType.AsyncAction)
+            {
+                return invocation => invocation.Proceed();
+            }
+
+            var handler = (ICachingInterceptorHandler)_services.GetRequiredService(typeof(CachingInterceptorHandler<>).MakeGenericType(returnType));
+
+            if (methodType == MethodType.AsyncFunction)
+            {
+                return CreateAsyncHandler(handler, method, returnType);
+            }
+
+            return CreateSyncHandler(handler, method, returnType);
+        }
+
+        private bool TryGetCancellationIndex(MethodInfo method, out int index)
+        {
+            index = 0;
+            foreach (var arg in method.GetParameters())
+            {
+                if (arg.ParameterType == typeof(CancellationToken))
+                {
+                    return true;
+                }
+
+                index++;
+            }
+            return false;
+        }
+
+        private static (MethodType, Type) GetMethodType(Type returnType)
         {
             if (returnType == typeof(void))
             {
