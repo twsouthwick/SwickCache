@@ -10,7 +10,7 @@ A simple tool to easily create caching proxies for types. To use, use the follow
 1. Register an implementation of `IDistributedCache`
 1. Wire up the cache proxy generator:
     - Register accessors so you can request `ICached<T>` or `ICacheInvalidator<T>` instances that will provide instances that will cache or invalidate cache entries respectively.
-    - Use Autofac, Scrutor, or other libraries to decorate a type `T` by calling `ICachingManager` methods to create proxies.
+    - Use [Autofac](https://www.nuget.org/packages/Autofac/), [Scrutor](https://www.nuget.org/packages/Scrutor/), or other libraries to decorate a type `T` by calling `ICachingManager` methods to create proxies.
 1. Register any serializer instances you may need (must implement `ICacheSerializer<>`) which are specialized per method return type.
 
 Customization
