@@ -110,6 +110,7 @@ namespace Swick.Cache
             _logger.LogDebug("Did not find cached value for '{Key}'", key);
 
             var result = await proceed.InvokeAsync().ConfigureAwait(false);
+
             var options = new DistributedCacheEntryOptions();
 
             foreach (var handler in _options.Value.CacheHandlers)
@@ -117,7 +118,10 @@ namespace Swick.Cache
                 handler.ConfigureEntryOptions(typeof(T), invocation.Method, result, options);
             }
 
-            var (bytes, finalResult) = _serializer.GetBytes(result);
+            var (bytes, finalResult) = result is null
+                ? (Array.Empty<byte>(), result)
+                : _serializer.GetBytes(result);
+
             await SetAsync(cache, key, bytes, options, isAsync, token).ConfigureAwait(false);
 
             _logger.LogDebug("Cached result for '{Key}'", key);

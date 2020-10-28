@@ -2,7 +2,7 @@
 
 namespace Swick.Cache.Serialization
 {
-    internal class StreamSerialzier : ICacheSerializer<Stream>
+    internal class StreamSerializer : ICacheSerializer<Stream>
     {
         public (byte[] bytes, Stream result) GetBytes(Stream obj)
         {

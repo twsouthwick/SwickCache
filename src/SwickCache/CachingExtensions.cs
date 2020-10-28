@@ -24,7 +24,7 @@ namespace Swick.Cache
             services.TryAddSingleton(typeof(CachingInterceptorHandler<>));
             services.TryAddTransient<ICacheKeyProvider, CacheKeyProvider>();
             services.TryAddSingleton<ICacheSerializer<byte[]>, ByteArraySerializer>();
-            services.TryAddSingleton<ICacheSerializer<Stream>, StreamSerialzier>();
+            services.TryAddSingleton<ICacheSerializer<Stream>, StreamSerializer>();
 
             return new CacheBuilder(services);
         }
