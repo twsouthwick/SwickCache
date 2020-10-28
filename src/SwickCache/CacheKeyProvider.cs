@@ -17,7 +17,6 @@ namespace Swick.Cache
             BuildKey(builder);
 
             builder.Append(method.DeclaringType.FullName);
-            builder.Append(method.DeclaringType.GetType().FullName);
             builder.Append(method.Name);
 
             foreach (var a in args)
@@ -37,16 +36,10 @@ namespace Swick.Cache
                 _builder = builder;
             }
 
-            public void Append(string str)
-            {
-                _builder.Append(str);
-                _builder.Append('.');
-            }
-
             public void Append(object o)
             {
                 _builder.Append(o);
-                _builder.Append('.');
+                _builder.Append('*');
             }
 
             public override string ToString() => _builder.ToString();
