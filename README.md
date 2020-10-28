@@ -13,6 +13,24 @@ A simple tool to easily create caching proxies for types. To use, use the follow
     - Use [Autofac](https://www.nuget.org/packages/Autofac/), [Scrutor](https://www.nuget.org/packages/Scrutor/), or other libraries to decorate a type `T` by calling `ICachingManager` methods to create proxies.
 1. Register any serializer instances you may need (must implement `ICacheSerializer<>`) which are specialized per method return type.
 
+This library will automatically intercept and cache calls with the following return types:
+
+- `Task<>`
+- `ValueTask<>`
+- `T`
+
+Note, that if the method is not async, the sync method on `IDistributedCache` will be used instead so that no blocking occurs.
+
+Logging is enabled in the app. If you want to see output, enable the logging filter:
+
+```csharp
+services.AddLogging(builder =>
+{
+    builder.AddFilter("Swick.Cache", LogLevel.Trace);
+    builder.AddDebug();
+});
+```
+
 Customization
 -------------
 
@@ -73,7 +91,6 @@ If you want to decorate services, use Autofac, Scrutor or some other system to h
       .AddAccessors();
 
     services.Decorate<ITest>((other, ctx) => ctx.GetRequiredService<ICachingManager>().CreateCachedProxy(other));
- 
   }
 
   public class UsageTest
@@ -129,3 +146,8 @@ public class UsageTest
     }
 }
 ```
+
+Contributing
+------------
+
+In order to build/test this project, you will want to ensure you're using the most up-to-date .NET toolchain (.NET CLI, VS, etc).
