@@ -7,6 +7,17 @@
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Authors>Taylor Southwick</Authors>
+    <Summary>A simple to use library to create proxies that enable caching against an IDistributedCache implementation.</Summary>
+    <Description>Provides a framework to simply create proxies that handle caching against an IDistributedCache. With this, a project can start using caching in under 10 lines of code.</Description>
+    <PackageTags>caching cache</PackageTags>
+    <ChangelogFile>$(MSBuildThisFileDirectory)\CHANGELOG.md</ChangelogFile>
+    <PackageReleaseNotes>$([System.IO.File]::ReadAllText($(ChangelogFile)))</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/twsouthwick/SwickCache</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Castle.Core" Version="4.4.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="2.1.0" />
