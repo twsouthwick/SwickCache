@@ -1,12 +1,11 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Swick.Cache.Serialization
+﻿namespace Swick.Cache.Serialization
 {
     internal class ByteArraySerializer : ICacheSerializer<byte[]>
     {
-        public (byte[] bytes, byte[] result) GetBytes(byte[] obj)
-            => (obj, obj);
+        public byte[] GetBytes(byte[] obj) => obj;
 
         public byte[] GetValue(byte[] data) => data;
+
+        public bool IsImmutable(byte[] input) => true;
     }
 }

@@ -57,7 +57,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ReturnObjectAsync().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
@@ -95,7 +96,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ReturnObjectAsyncWithCancellation(token).Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
@@ -131,7 +133,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ValueTaskObjectAsync().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
@@ -169,7 +172,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ValueTaskObjectWithCancellationAsync(token).Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
@@ -204,7 +208,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ReturnObject().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
@@ -238,7 +243,8 @@ namespace Swick.Cache.Tests
                 .ConfigureService<ITest>(t => t.ReturnObject().Returns(expected))
                 .SubstituteFor<ICacheKeyProvider>()
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
-                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns((value, expected)))
+                .ConfigureService<ICacheSerializer<object>>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer<object>>(t => t.IsImmutable(expected).Returns(true))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());

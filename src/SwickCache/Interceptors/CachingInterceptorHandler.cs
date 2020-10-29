@@ -111,6 +111,12 @@ namespace Swick.Cache
 
             var result = await proceed.InvokeAsync().ConfigureAwait(false);
 
+            if (result is null)
+            {
+                _logger.LogTrace("Null response returned and cannot be cached.");
+                return result;
+            }
+
             var options = new DistributedCacheEntryOptions();
 
             foreach (var handler in _options.Value.CacheHandlers)
@@ -118,15 +124,13 @@ namespace Swick.Cache
                 handler.ConfigureEntryOptions(typeof(T), invocation.Method, result, options);
             }
 
-            var (bytes, finalResult) = result is null
-                ? (Array.Empty<byte>(), result)
-                : _serializer.GetBytes(result);
+            var bytes = _serializer.GetBytes(result);
 
             await SetAsync(cache, key, bytes, options, isAsync, token).ConfigureAwait(false);
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return finalResult;
+            return _serializer.IsImmutable(result) ? result : _serializer.GetValue(bytes);
         }
 
         private async ValueTask SetAsync(IDistributedCache cache, string key, byte[] bytes, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)

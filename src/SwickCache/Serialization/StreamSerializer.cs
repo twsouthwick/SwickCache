@@ -4,22 +4,28 @@ namespace Swick.Cache.Serialization
 {
     internal class StreamSerializer : ICacheSerializer<Stream>
     {
-        public (byte[] bytes, Stream result) GetBytes(Stream obj)
+        public bool IsImmutable(Stream input) => input.CanSeek;
+
+        public byte[] GetBytes(Stream obj)
         {
             if (obj is MemoryStream ms)
             {
-                var bytes = ms.ToArray();
-
-                return (bytes, ms);
+                return ms.ToArray();
             }
             else
             {
-                var m = new MemoryStream();
+                using var m = new MemoryStream();
+
+                var position = obj.Position;
 
                 obj.CopyTo(m);
-                m.Position = 0;
 
-                return (m.ToArray(), m);
+                if (IsImmutable(obj))
+                {
+                    obj.Seek(position, SeekOrigin.Begin);
+                }
+
+                return m.ToArray();
             }
         }
 

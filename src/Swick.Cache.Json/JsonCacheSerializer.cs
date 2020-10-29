@@ -4,10 +4,12 @@ namespace Swick.Cache
 {
     public class JsonCacheSerializer<T> : ICacheSerializer<T>
     {
+        public bool IsImmutable(T input) => true;
+
         public T GetValue(byte[] data)
             => JsonSerializer.Deserialize<T>(data);
 
-        public (byte[] bytes, T result) GetBytes(T obj)
-            => (JsonSerializer.SerializeToUtf8Bytes<T>(obj), obj);
+        public byte[] GetBytes(T obj)
+            => JsonSerializer.SerializeToUtf8Bytes<T>(obj);
     }
 }

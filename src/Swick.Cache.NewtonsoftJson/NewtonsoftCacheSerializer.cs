@@ -12,7 +12,7 @@ namespace Swick.Cache
             _serializer = serializer;
         }
 
-        public (byte[] bytes, T result) GetBytes(T obj)
+        public byte[] GetBytes(T obj)
         {
             using (var ms = new MemoryStream())
             {
@@ -22,7 +22,7 @@ namespace Swick.Cache
                     _serializer.Serialize(jsonTextWriter, obj);
                 }
 
-                return (ms.ToArray(), obj);
+                return ms.ToArray();
             }
         }
 
@@ -35,5 +35,7 @@ namespace Swick.Cache
                 return _serializer.Deserialize<T>(jsonReader);
             }
         }
+
+        public bool IsImmutable(T input) => true;
     }
 }
