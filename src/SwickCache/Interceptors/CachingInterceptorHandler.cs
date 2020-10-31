@@ -104,10 +104,19 @@ namespace Swick.Cache
             {
                 _logger.LogDebug("Using cached value for '{Key}'", key);
 
-                return _serializer.GetValue<T>(cached);
+                try
+                {
+                    return _serializer.GetValue<T>(cached);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Unexpected error deserializing {Key}. Recaching new value.", key);
+                }
             }
-
-            _logger.LogDebug("Did not find cached value for '{Key}'", key);
+            else
+            {
+                _logger.LogDebug("Did not find cached value for '{Key}'", key);
+            }
 
             var result = await proceed.InvokeAsync().ConfigureAwait(false);
 

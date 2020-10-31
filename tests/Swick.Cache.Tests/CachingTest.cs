@@ -3,6 +3,7 @@ using AutoFixture;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.VisualBasic.CompilerServices;
 using NSubstitute;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.ComTypes;
@@ -211,6 +212,45 @@ namespace Swick.Cache.Tests
                     .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
                 .ConfigureService<ICacheSerializer>(t => t.GetBytes(expected).Returns(value))
                 .ConfigureService<ICacheSerializer>(t => t.GetValue<object>(value).Returns(expected))
+                .Build();
+
+            var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
+
+            // Act
+            var result = cached.ReturnObject();
+
+            // Assert
+            Assert.Equal(expected, result);
+
+            mock.Resolve<IDistributedCache>().Received(1).Set(key, value, Arg.Any<DistributedCacheEntryOptions>());
+        }
+
+        [Fact]
+        public void RemoveCacheEntryIfDeserializationThrows()
+        {
+            // Arrange
+            var expected = _fixture.Create<string>();
+            var key = _fixture.Create<string>();
+            var value = _fixture.CreateMany<byte>().ToArray();
+            var error = _fixture.CreateMany<byte>().ToArray();
+
+            using var mock = AutoSubstitute.Configure()
+                .InjectProperties()
+                .AddCaching(c =>
+                {
+                    c.CacheType<ITest>(test =>
+                    {
+                        test.Add(t => t.ReturnObject());
+                    });
+                })
+                .MakeUnregisteredTypesPerLifetime()
+                .ConfigureService<IDistributedCache>(cache => cache.Get(key).Returns(error))
+                .ConfigureService<ITest>(t => t.ReturnObject().Returns(expected))
+                .SubstituteFor<ICacheKeyProvider>()
+                    .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
+                .ConfigureService<ICacheSerializer>(t => t.GetBytes(expected).Returns(value))
+                .ConfigureService<ICacheSerializer>(t => t.GetValue<object>(value).Returns(expected))
+                .ConfigureService<ICacheSerializer>(t => t.GetValue<object>(error).Returns(_ => throw new InvalidOperationException()))
                 .Build();
 
             var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
