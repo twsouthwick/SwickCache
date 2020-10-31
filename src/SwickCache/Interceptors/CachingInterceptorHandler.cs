@@ -11,14 +11,14 @@ namespace Swick.Cache
     internal class CachingInterceptorHandler<T> : ICachingInterceptorHandler
     {
         private readonly CachingInterceptorHandlerOptions _cacheAccessor;
-        private readonly ICacheSerializer<T> _serializer;
+        private readonly ICacheSerializer _serializer;
         private readonly ICacheKeyProvider _keyProvider;
         private readonly IOptionsSnapshot<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
         public CachingInterceptorHandler(
             IOptions<CachingInterceptorHandlerOptions> cacheAccessor,
-            ICacheSerializer<T> serializer,
+            ICacheSerializer serializer,
             ICacheKeyProvider keyProvider,
             IOptionsSnapshot<CachingOptions> options,
             ILogger<CachingInterceptor> logger)
@@ -104,7 +104,7 @@ namespace Swick.Cache
             {
                 _logger.LogDebug("Using cached value for '{Key}'", key);
 
-                return _serializer.GetValue(cached);
+                return _serializer.GetValue<T>(cached);
             }
 
             _logger.LogDebug("Did not find cached value for '{Key}'", key);
@@ -130,7 +130,7 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return _serializer.IsImmutable(result) ? result : _serializer.GetValue(bytes);
+            return _serializer.GetValue<T>(bytes);
         }
 
         private async ValueTask SetAsync(IDistributedCache cache, string key, byte[] bytes, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)

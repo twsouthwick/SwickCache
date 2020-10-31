@@ -15,7 +15,7 @@ namespace Swick.Cache
                 optionBuilder.Configure(configure);
             }
 
-            builder.Services.TryAddSingleton(typeof(ICacheSerializer<>), typeof(JsonCacheSerializer<>));
+            builder.Services.TryAddSingleton<ICacheSerializer, JsonCacheSerializer>();
 
             return builder;
         }
