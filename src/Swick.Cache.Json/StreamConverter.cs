@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.Buffers;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -28,7 +30,7 @@ namespace Swick.Cache.Json
                 _maxLength = maxLength;
             }
 
-            public override Stream Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options)
+            public override Stream Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 var bytes = reader.GetBytesFromBase64();
                 return new MemoryStream(bytes);
@@ -36,34 +38,35 @@ namespace Swick.Cache.Json
 
             public override void Write(Utf8JsonWriter writer, Stream value, JsonSerializerOptions options)
             {
-                if (value.CanSeek && _maxLength.HasValue && value.Length > _maxLength.Value)
+                if (!value.CanSeek)
                 {
-                    throw new DoNotCacheException();
+                    throw new DoNotCacheException("Stream must be seekable");
                 }
 
-                using var ms = GetMemoryStream(value);
-
-                if (ms.TryGetBuffer(out var buffer))
+                if (_maxLength.HasValue && value.Length > _maxLength.Value)
                 {
-                    writer.WriteBase64StringValue(buffer);
+                    throw new DoNotCacheException("Stream is too large to be serialized");
+                }
+
+                if (value is MemoryStream m && m.TryGetBuffer(out var mbuffer))
+                {
+                    writer.WriteBase64StringValue(mbuffer);
                 }
                 else
                 {
-                    writer.WriteBase64StringValue(ms.ToArray());
+                    var buffer = ArrayPool<byte>.Shared.Rent((int)value.Length);
+
+                    try
+                    {
+                        using var ms = new MemoryStream(buffer);
+                        value.CopyTo(ms);
+                        writer.WriteBase64StringValue(new ReadOnlySpan<byte>(buffer, 0, (int)value.Length));
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                    }
                 }
-            }
-
-
-            private static MemoryStream GetMemoryStream(Stream value)
-            {
-                if (value is MemoryStream m)
-                {
-                    return m;
-                }
-
-                var ms = new MemoryStream();
-                value.CopyTo(ms);
-                return ms;
             }
         }
     }
