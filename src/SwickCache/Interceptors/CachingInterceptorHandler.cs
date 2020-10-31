@@ -126,6 +126,13 @@ namespace Swick.Cache
                 return result;
             }
 
+            var bytes = GetBytes(result);
+
+            if (bytes is null)
+            {
+                return result;
+            }
+
             var options = new DistributedCacheEntryOptions();
 
             foreach (var handler in _options.Value.CacheHandlers)
@@ -133,13 +140,29 @@ namespace Swick.Cache
                 handler.ConfigureEntryOptions(typeof(T), invocation.Method, result, options);
             }
 
-            var bytes = _serializer.GetBytes(result);
-
             await SetAsync(cache, key, bytes, options, isAsync, token).ConfigureAwait(false);
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
             return _serializer.GetValue<T>(bytes);
+        }
+
+        private byte[] GetBytes(T result)
+        {
+            try
+            {
+                return _serializer.GetBytes(result);
+            }
+            catch (DoNotCacheException)
+            {
+                _logger.LogInformation("Serializer decided to not cache item");
+                return null;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Unexpected error serializing");
+                return null;
+            }
         }
 
         private async ValueTask SetAsync(IDistributedCache cache, string key, byte[] bytes, DistributedCacheEntryOptions options, bool isAsync, CancellationToken token)
