@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Swick.Cache
+namespace Swick.Cache.Json
 {
     public class JsonCacheOptions
     {
