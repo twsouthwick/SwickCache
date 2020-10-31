@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Swick.Cache.Json
 {
@@ -6,9 +7,9 @@ namespace Swick.Cache.Json
     {
         private readonly JsonCacheOptions _options;
 
-        public JsonCacheSerializer(JsonCacheOptions options)
+        public JsonCacheSerializer(IOptions<JsonCacheOptions> options)
         {
-            _options = options;
+            _options = options.Value;
         }
 
         public T GetValue<T>(byte[] data)
