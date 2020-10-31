@@ -2,6 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Taylor Southwick</Authors>
+    <Summary>System.Text.Json serializer support for Swick.Cache</Summary>
+    <Description>Provides support for serialization with System.Text.Json to Swick.Cache</Description>
+    <PackageTags>caching cache json</PackageTags>
+    <ChangelogFile>$(MSBuildThisFileDirectory)\CHANGELOG.md</ChangelogFile>
+    <PackageReleaseNotes>$([System.IO.File]::ReadAllText($(ChangelogFile)))</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/twsouthwick/SwickCache</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
