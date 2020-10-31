@@ -155,7 +155,7 @@ namespace Swick.Cache
             }
             catch (DoNotCacheException e)
             {
-                _logger.LogInformation("Serializer decided to not cache item: {Message}", e.Message);
+                _logger.LogInformation("Serializer failed to cache item: {Message}", e.Message);
                 return null;
             }
             catch (Exception e)
