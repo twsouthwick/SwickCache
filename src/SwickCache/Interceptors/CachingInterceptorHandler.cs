@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Swick.Cache.Handlers;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,6 +18,8 @@ namespace Swick.Cache
         private readonly IOptionsSnapshot<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
+        private readonly bool _isDrained;
+
         public CachingInterceptorHandler(
             IOptions<CachingInterceptorHandlerOptions> cacheAccessor,
             ICacheSerializer serializer,
@@ -29,6 +32,8 @@ namespace Swick.Cache
             _keyProvider = keyProvider;
             _options = options;
             _logger = logger;
+
+            _isDrained = IsDrained(options.Value.InternalHandlers);
         }
 
         public void Invalidate(IInvocation invocation, MethodType methodType)
@@ -142,7 +147,7 @@ namespace Swick.Cache
 
             var options = new DistributedCacheEntryOptions();
 
-            foreach (var handler in _options.Value.CacheHandlers)
+            foreach (var handler in _options.Value.InternalHandlers)
             {
                 handler.ConfigureEntryOptions(typeof(T), invocation.Method, result, options);
             }
@@ -151,12 +156,12 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return IsDrained(result) ? _serializer.GetValue<T>(bytes) : result;
+            return _isDrained ? _serializer.GetValue<T>(bytes) : result;
         }
 
         private bool ShouldCache(T obj)
         {
-            foreach (var h in _options.Value.CacheHandlers)
+            foreach (var h in _options.Value.InternalHandlers)
             {
                 if (h is CacheHandler<T> handler)
                 {
@@ -170,13 +175,13 @@ namespace Swick.Cache
             return true;
         }
 
-        private bool IsDrained(T obj)
+        private static bool IsDrained(List<CacheHandler> handlers)
         {
-            foreach (var h in _options.Value.CacheHandlers)
+            foreach (var h in handlers)
             {
                 if (h is CacheHandler<T> handler)
                 {
-                    if (handler.IsDataDrained(obj))
+                    if (handler.IsDataDrained)
                     {
                         return true;
                     }

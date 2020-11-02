@@ -56,7 +56,7 @@ namespace Swick.Cache
 
         bool IProxyGenerationHook.ShouldInterceptMethod(Type type, MethodInfo methodInfo)
         {
-            foreach (var handler in _cachingOptions.CurrentValue.CacheHandlers)
+            foreach (var handler in _cachingOptions.CurrentValue.InternalHandlers)
             {
                 if (handler.ShouldCache(type, methodInfo))
                 {

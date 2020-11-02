@@ -6,8 +6,7 @@ namespace Swick.Cache.Handlers
 {
     public abstract class CacheHandler<T> : CacheHandler
     {
-        protected internal virtual bool IsDataDrained(T obj)
-            => false;
+        protected internal virtual bool IsDataDrained => false;
 
         protected internal virtual bool ShouldCache(T obj)
             => true;

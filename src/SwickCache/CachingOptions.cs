@@ -5,6 +5,8 @@ namespace Swick.Cache
 {
     public class CachingOptions
     {
+        internal readonly List<CacheHandler> InternalHandlers= new List<CacheHandler>();
+
         /// <summary>
         /// Gets or sets a value indicating whether caching is turned on. Can be adjusted at runtime.
         /// </summary>
@@ -18,6 +20,6 @@ namespace Swick.Cache
         /// <summary>
         /// Collection to identify what which methods should be cached.
         /// </summary>
-        public IList<CacheHandler> CacheHandlers { get; } = new List<CacheHandler>();
+        public IList<CacheHandler> CacheHandlers => InternalHandlers;
     }
 }
