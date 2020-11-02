@@ -10,26 +10,19 @@ namespace Swick.Cache.Json
     {
         private readonly JsonConverter<Stream> _converter;
 
-        public StreamConverter(long? maxLength = null)
+        public StreamConverter()
         {
-            _converter = new StreamConverterImpl(maxLength);
+            _converter = new StreamConverterImpl();
         }
 
-        public override bool CanConvert(System.Type typeToConvert)
+        public override bool CanConvert(Type typeToConvert)
             => typeof(Stream).IsAssignableFrom(typeToConvert);
 
-        public override JsonConverter CreateConverter(System.Type typeToConvert, JsonSerializerOptions options)
+        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
             => _converter;
 
         private class StreamConverterImpl : JsonConverter<Stream>
         {
-            private readonly long? _maxLength;
-
-            public StreamConverterImpl(long? maxLength)
-            {
-                _maxLength = maxLength;
-            }
-
             public override Stream Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 var bytes = reader.GetBytesFromBase64();
@@ -38,16 +31,6 @@ namespace Swick.Cache.Json
 
             public override void Write(Utf8JsonWriter writer, Stream value, JsonSerializerOptions options)
             {
-                if (!value.CanSeek)
-                {
-                    throw new DoNotCacheException("Stream must be seekable");
-                }
-
-                if (_maxLength.HasValue && value.Length > _maxLength.Value)
-                {
-                    throw new DoNotCacheException("Stream is too large to be serialized");
-                }
-
                 if (value is MemoryStream m && m.TryGetBuffer(out var mbuffer))
                 {
                     writer.WriteBase64StringValue(mbuffer);

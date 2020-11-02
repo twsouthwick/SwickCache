@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Swick.Cache.Handlers;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -126,6 +127,12 @@ namespace Swick.Cache
                 return result;
             }
 
+            if (!ShouldCache(result))
+            {
+                _logger.LogTrace("Not caching {Key}", key);
+                return result;
+            }
+
             var bytes = GetBytes(result);
 
             if (bytes is null)
@@ -144,7 +151,39 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return _serializer.GetValue<T>(bytes);
+            return IsDrained(result) ? _serializer.GetValue<T>(bytes) : result;
+        }
+
+        private bool ShouldCache(T obj)
+        {
+            foreach (var h in _options.Value.CacheHandlers)
+            {
+                if (h is CacheHandler<T> handler)
+                {
+                    if (!handler.ShouldCache(obj))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private bool IsDrained(T obj)
+        {
+            foreach (var h in _options.Value.CacheHandlers)
+            {
+                if (h is CacheHandler<T> handler)
+                {
+                    if (handler.IsDataDrained(obj))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private byte[] GetBytes(T result)
@@ -152,11 +191,6 @@ namespace Swick.Cache
             try
             {
                 return _serializer.GetBytes(result);
-            }
-            catch (DoNotCacheException e)
-            {
-                _logger.LogInformation("Serializer failed to cache item: {Message}", e.Message);
-                return null;
             }
             catch (Exception e)
             {
