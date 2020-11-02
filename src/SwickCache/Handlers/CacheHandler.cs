@@ -4,12 +4,6 @@ using System.Reflection;
 
 namespace Swick.Cache.Handlers
 {
-    public abstract class CacheHandler<T> : CacheHandler
-    {
-        protected internal virtual bool ShouldCache(T obj)
-            => true;
-    }
-
     public abstract class CacheHandler
     {
         protected internal virtual bool IsDataDrained => false;
@@ -20,5 +14,8 @@ namespace Swick.Cache.Handlers
         protected internal virtual void ConfigureEntryOptions(Type type, MethodInfo method, object obj, DistributedCacheEntryOptions options)
         {
         }
+
+        protected internal virtual bool ShouldCache(object obj)
+            => true;
     }
 }

@@ -161,14 +161,11 @@ namespace Swick.Cache
 
         private bool ShouldCache(T obj)
         {
-            foreach (var h in _options.Value.InternalHandlers)
+            foreach (var handler in _options.Value.InternalHandlers)
             {
-                if (h is CacheHandler<T> handler)
+                if (!handler.ShouldCache(obj))
                 {
-                    if (!handler.ShouldCache(obj))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
 
@@ -177,14 +174,11 @@ namespace Swick.Cache
 
         private static bool IsDrained(List<CacheHandler> handlers)
         {
-            foreach (var h in handlers)
+            foreach (var handler in handlers)
             {
-                if (h is CacheHandler<T> handler)
+                if (handler.IsDataDrained)
                 {
-                    if (handler.IsDataDrained)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 
