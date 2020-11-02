@@ -2,9 +2,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Swick.Cache.Handlers;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,8 +16,6 @@ namespace Swick.Cache
         private readonly IOptionsSnapshot<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
-        private readonly bool _isDrained;
-
         public CachingInterceptorHandler(
             IOptions<CachingInterceptorHandlerOptions> cacheAccessor,
             ICacheSerializer serializer,
@@ -32,8 +28,6 @@ namespace Swick.Cache
             _keyProvider = keyProvider;
             _options = options;
             _logger = logger;
-
-            _isDrained = IsDrained(options.Value.InternalHandlers);
         }
 
         public void Invalidate(IInvocation invocation, MethodType methodType)
@@ -156,7 +150,7 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return _isDrained ? _serializer.GetValue<T>(bytes) : result;
+            return IsDrained(result) ? _serializer.GetValue<T>(bytes) : result;
         }
 
         private bool ShouldCache(T obj)
@@ -172,11 +166,11 @@ namespace Swick.Cache
             return true;
         }
 
-        private static bool IsDrained(List<CacheHandler> handlers)
+        private bool IsDrained(T data)
         {
-            foreach (var handler in handlers)
+            foreach (var handler in _options.Value.InternalHandlers)
             {
-                if (handler.IsDataDrained)
+                if (handler.IsDataDrained(data))
                 {
                     return true;
                 }
