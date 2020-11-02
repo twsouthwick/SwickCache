@@ -42,7 +42,7 @@ namespace Swick.Cache
                 _builder.Append('*');
             }
 
-            public override string ToString() => _builder.ToString();
+            public override string ToString() => _builder.ToString(0, _builder.Length - 1);
         }
     }
 }
