@@ -13,14 +13,14 @@ namespace Swick.Cache
         private readonly CachingInterceptorHandlerOptions _cacheAccessor;
         private readonly ICacheSerializer _serializer;
         private readonly ICacheKeyProvider _keyProvider;
-        private readonly IOptionsSnapshot<CachingOptions> _options;
+        private readonly IOptionsMonitor<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
         public CachingInterceptorHandler(
             IOptions<CachingInterceptorHandlerOptions> cacheAccessor,
             ICacheSerializer serializer,
             ICacheKeyProvider keyProvider,
-            IOptionsSnapshot<CachingOptions> options,
+            IOptionsMonitor<CachingOptions> options,
             ILogger<CachingInterceptor> logger)
         {
             _cacheAccessor = cacheAccessor.Value;
@@ -85,8 +85,9 @@ namespace Swick.Cache
         {
             var proceed = new Proceed<T>(invocation, methodType);
             var isAsync = methodType != MethodType.Synchronous;
+            var cachingOptions = _options.CurrentValue;
 
-            if (!_options.Value.IsEnabled)
+            if (!cachingOptions.IsEnabled)
             {
                 _logger.LogWarning("Caching has been turned off");
 
@@ -126,7 +127,7 @@ namespace Swick.Cache
                 return result;
             }
 
-            if (!ShouldCache(result))
+            if (!ShouldCache(cachingOptions, result))
             {
                 _logger.LogTrace("Not caching {Key}", key);
                 return result;
@@ -141,7 +142,7 @@ namespace Swick.Cache
 
             var options = new DistributedCacheEntryOptions();
 
-            foreach (var handler in _options.Value.InternalHandlers)
+            foreach (var handler in cachingOptions.InternalHandlers)
             {
                 handler.ConfigureEntryOptions(typeof(T), invocation.Method, result, options);
             }
@@ -150,12 +151,12 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return IsDrained(result) ? _serializer.GetValue<T>(bytes) : result;
+            return IsDrained(cachingOptions, result) ? _serializer.GetValue<T>(bytes) : result;
         }
 
-        private bool ShouldCache(T obj)
+        private bool ShouldCache(CachingOptions options, T obj)
         {
-            foreach (var handler in _options.Value.InternalHandlers)
+            foreach (var handler in options.InternalHandlers)
             {
                 if (!handler.ShouldCache(obj))
                 {
@@ -166,9 +167,9 @@ namespace Swick.Cache
             return true;
         }
 
-        private bool IsDrained(T data)
+        private bool IsDrained(CachingOptions options, T data)
         {
-            foreach (var handler in _options.Value.InternalHandlers)
+            foreach (var handler in options.InternalHandlers)
             {
                 if (handler.IsDataDrained(data))
                 {
