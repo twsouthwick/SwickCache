@@ -27,7 +27,7 @@ namespace Swick.Cache.Tests
         {
             builder.ConfigureOptions(options =>
             {
-                options.MockHandlers.Add(SkipValidateOptionsMockHandler.Instance);
+                options.MockHandlers.Add(SkipTypeMockHandler.Create(new[] { typeof(IValidateOptions<>), typeof(IResultTransformer<>) }));
             });
 
             return builder.AddServices(b =>
@@ -47,20 +47,5 @@ namespace Swick.Cache.Tests
                 b.Populate(services);
             });
         }
-
-        private class SkipValidateOptionsMockHandler : MockHandler
-        {
-            public static MockHandler Instance { get; } = new SkipValidateOptionsMockHandler();
-
-            protected override void OnMockCreating(MockCreatingContext context)
-            {
-                if (context.Type.IsGenericType && context.Type.GetGenericTypeDefinition() == typeof(IValidateOptions<>))
-                {
-                    context.DoNotCreate();
-                }
-            }
-        }
-
-
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Castle.DynamicProxy;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -8,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace Swick.Cache
 {
-    internal class CachingInterceptorHandler<T> : ICachingInterceptorHandler
+    internal class CachingInterceptorHandler<T> : ICachingInterceptorHandler, IResultTransformer<T>
     {
         private readonly CachingInterceptorHandlerOptions _cacheAccessor;
         private readonly ICacheSerializer _serializer;
         private readonly ICacheKeyProvider _keyProvider;
+        private readonly IResultTransformer<T> _transformer;
         private readonly IOptionsMonitor<CachingOptions> _options;
         private readonly ILogger<CachingInterceptor> _logger;
 
@@ -21,11 +23,13 @@ namespace Swick.Cache
             ICacheSerializer serializer,
             ICacheKeyProvider keyProvider,
             IOptionsMonitor<CachingOptions> options,
+            IServiceProvider services,
             ILogger<CachingInterceptor> logger)
         {
             _cacheAccessor = cacheAccessor.Value;
             _serializer = serializer;
             _keyProvider = keyProvider;
+            _transformer = services.GetService<IResultTransformer<T>>() ?? this;
             _options = options;
             _logger = logger;
         }
@@ -119,7 +123,7 @@ namespace Swick.Cache
                 _logger.LogDebug("Did not find cached value for '{Key}'", key);
             }
 
-            var result = await proceed.InvokeAsync().ConfigureAwait(false);
+            var result = await ProceedAndTransformAsync(proceed, token);
 
             if (result is null)
             {
@@ -151,7 +155,14 @@ namespace Swick.Cache
 
             _logger.LogDebug("Cached result for '{Key}'", key);
 
-            return IsDrained(cachingOptions, result) ? _serializer.GetValue<T>(bytes) : result;
+            return await _transformer.ResetAsync(result, token).ConfigureAwait(false);
+        }
+
+        private async ValueTask<T> ProceedAndTransformAsync(Proceed<T> proceed, CancellationToken token)
+        {
+            var result = await proceed.InvokeAsync().ConfigureAwait(false);
+
+            return await _transformer.TransformAsync(result, token).ConfigureAwait(false);
         }
 
         private bool ShouldCache(CachingOptions options, T obj)
@@ -165,19 +176,6 @@ namespace Swick.Cache
             }
 
             return true;
-        }
-
-        private bool IsDrained(CachingOptions options, T data)
-        {
-            foreach (var handler in options.InternalHandlers)
-            {
-                if (handler.IsDataDrained(data))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private byte[] GetBytes(T result)
@@ -224,5 +222,9 @@ namespace Swick.Cache
                 return null;
             }
         }
+
+        ValueTask<T> IResultTransformer<T>.TransformAsync(T input, CancellationToken token) => new ValueTask<T>(input);
+
+        ValueTask<T> IResultTransformer<T>.ResetAsync(T input, CancellationToken token) => new ValueTask<T>(input);
     }
 }
