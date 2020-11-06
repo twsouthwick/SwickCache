@@ -35,7 +35,7 @@ namespace Swick.Cache.Json
                 {
                     writer.WriteBase64StringValue(mbuffer);
                 }
-                else
+                else if (value.CanSeek)
                 {
                     var buffer = ArrayPool<byte>.Shared.Rent((int)value.Length);
 
@@ -49,6 +49,12 @@ namespace Swick.Cache.Json
                     {
                         ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                     }
+                }
+                else
+                {
+                    using var ms = new MemoryStream();
+                    value.CopyTo(ms);
+                    writer.WriteBase64StringValue(ms.ToArray());
                 }
             }
         }
