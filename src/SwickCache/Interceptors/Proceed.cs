@@ -1,4 +1,5 @@
 ﻿using Castle.DynamicProxy;
+using Swick.Cache.Resources;
 using System.Threading.Tasks;
 
 namespace Swick.Cache
@@ -22,7 +23,12 @@ namespace Swick.Cache
 
             if (_methodType == MethodType.Task)
             {
-                return await (Task<TResult>)_invocation.ReturnValue;
+                if (_invocation.ReturnValue is Task<TResult> resultTask)
+                {
+                    return await resultTask;
+                }
+
+                throw new CacheException(LocalizedStrings.TaskReturnedNull);
             }
             else if (_methodType == MethodType.ValueTask)
             {

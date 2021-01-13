@@ -75,6 +75,41 @@ namespace Swick.Cache.Tests
         }
 
         [Fact]
+        public async Task SimpleAsyncReturnsNull()
+        {
+            // Arrange
+            var expected = _fixture.Create<string>();
+            var key = _fixture.Create<string>();
+            var value = _fixture.CreateMany<byte>().ToArray();
+
+            using var mock = AutoSubstitute.Configure()
+                .InjectProperties()
+                .AddCaching(c =>
+                {
+                    c.CacheType<ITest>(test =>
+                    {
+                        test.Add(t => t.ReturnObjectAsync());
+                    });
+                })
+                .MakeUnregisteredTypesPerLifetime()
+                .ConfigureService<IDistributedCache>(cache => cache.GetAsync(key).Returns((byte[])null))
+                .ConfigureService<ITest>(t => t.ReturnObjectAsync().Returns(default(Task<object>)))
+                .SubstituteFor<ICacheKeyProvider>()
+                    .ConfigureSubstitute(t => t.GetKey(Arg.Any<MethodInfo>(), Arg.Any<object[]>()).Returns(key))
+                .ConfigureService<ICacheSerializer>(t => t.GetBytes<object>(expected).Returns(value))
+                .ConfigureService<ICacheSerializer>(t => t.GetValue<object>(value).Returns(expected))
+                .Build();
+
+            var cached = mock.Resolve<ICachingManager>().CreateCachedProxy(mock.Resolve<ITest>());
+
+            // Act
+            var exception = await Assert.ThrowsAsync<CacheException>(() => cached.ReturnObjectAsync());
+
+            // Assert
+            Assert.Equal("Returned task returned a null value which cannot be awaited.", exception.Message);
+        }
+
+        [Fact]
         public async Task AsyncMethodWithCancellationIsCached()
         {
             // Arrange
